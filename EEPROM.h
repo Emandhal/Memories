@@ -73,36 +73,36 @@ extern "C" {
 // EEPROM Specific Driver Registers
 //********************************************************************************************************************
 
-//! Enumerator of all possible chip address selection pin that the device can have
+//! Enumerator of all possible user configurable chip address selection pin that the device can have
 typedef enum
 {
   EEPROM_NO_CHIP_ADDRESS_SELECT = 0x00,                                                                     //!< No chip select address
-  EEPROM_CHIP_ADDRESS_A0        = 0x01,                                                                     //!< Chip select use A0
-  EEPROM_CHIP_ADDRESS_A1        = 0x02,                                                                     //!< Chip select use A1
-  EEPROM_CHIP_ADDRESS_A2        = 0x04,                                                                     //!< Chip select use A2
-  EEPROM_CHIP_ADDRESS_A1A0      = EEPROM_CHIP_ADDRESS_A1 | EEPROM_CHIP_ADDRESS_A0,                          //!< Chip select use A1, and A0
-  EEPROM_CHIP_ADDRESS_A2A0      = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A0,                          //!< Chip select use A2, and A0
-  EEPROM_CHIP_ADDRESS_A2A1      = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A1,                          //!< Chip select use A2, and A1
-  EEPROM_CHIP_ADDRESS_A2A1A0    = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A1 | EEPROM_CHIP_ADDRESS_A0, //!< Chip select use A2, A1, and A0
+  EEPROM_CHIP_ADDRESS_A0        = 0x01,                                                                     //!< User configurable chip select use A0
+  EEPROM_CHIP_ADDRESS_A1        = 0x02,                                                                     //!< User configurable chip select use A1
+  EEPROM_CHIP_ADDRESS_A2        = 0x04,                                                                     //!< User configurable chip select use A2
+  EEPROM_CHIP_ADDRESS_A1A0      = EEPROM_CHIP_ADDRESS_A1 | EEPROM_CHIP_ADDRESS_A0,                          //!< User configurable chip select use A1, and A0
+  EEPROM_CHIP_ADDRESS_A2A0      = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A0,                          //!< User configurable chip select use A2, and A0
+  EEPROM_CHIP_ADDRESS_A2A1      = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A1,                          //!< User configurable chip select use A2, and A1
+  EEPROM_CHIP_ADDRESS_A2A1A0    = EEPROM_CHIP_ADDRESS_A2 | EEPROM_CHIP_ADDRESS_A1 | EEPROM_CHIP_ADDRESS_A0, //!< User configurable chip select use A2, A1, and A0
 } eEEPROM_ChipSelect;
 
 
-//! Enumerator of all possible chip address configuration type
+//! Enumerator of all possible address configuration type
 typedef enum
 {
-  EEPROM_ADDRESS_1Byte             =    1, //!< EEPROM Address is  8-bits: S (1010A2A1A0.) (xxxxxxxx)
-  EEPROM_ADDRESS_1Byte_plus_A0     = 0x21, //!< EEPROM Address is  9-bits: S (1010A2A1x .) (xxxxxxxx)
-  EEPROM_ADDRESS_1Byte_plus_A1A0   = 0x61, //!< EEPROM Address is 10-bits: S (1010A2x x .) (xxxxxxxx)
-  EEPROM_ADDRESS_1Byte_plus_A2A1A0 = 0xE1, //!< EEPROM Address is 11-bits: S (1010x x x .) (xxxxxxxx)
-  EEPROM_ADDRESS_2Bytes            =    2, //!< EEPROM Address is 16-bits: S (1010A2A1A0.) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_2Byte_plus_A0     = 0x22, //!< EEPROM Address is 17-bits: S (1010A2A1x .) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_2Byte_plus_A1A0   = 0x62, //!< EEPROM Address is 18-bits: S (1010A2x x .) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_2Byte_plus_A2A1A0 = 0xE2, //!< EEPROM Address is 19-bits: S (1010x x x .) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_3Bytes            =    3, //!< EEPROM Address is 24-bits: S (1010A2A1A0.) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_3Byte_plus_A0     = 0x23, //!< EEPROM Address is 25-bits: S (1010A2A1x .) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_3Byte_plus_A1A0   = 0x63, //!< EEPROM Address is 26-bits: S (1010A2x x .) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_3Byte_plus_A2A1A0 = 0xE3, //!< EEPROM Address is 27-bits: S (1010x x x .) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
-  EEPROM_ADDRESS_4Bytes            =    4, //!< EEPROM Address is 32-bits: S (1010A2A1A0.) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_1Byte             =    1, //!< EEPROM Address is  8-bits: S (1010A2A1A0_) (xxxxxxxx)
+  EEPROM_ADDRESS_1Byte_plus_A0     = 0x21, //!< EEPROM Address is  9-bits: S (1010A2A1x _) (xxxxxxxx)
+  EEPROM_ADDRESS_1Byte_plus_A1A0   = 0x61, //!< EEPROM Address is 10-bits: S (1010A2x x _) (xxxxxxxx)
+  EEPROM_ADDRESS_1Byte_plus_A2A1A0 = 0xE1, //!< EEPROM Address is 11-bits: S (1010x x x _) (xxxxxxxx)
+  EEPROM_ADDRESS_2Bytes            =    2, //!< EEPROM Address is 16-bits: S (1010A2A1A0_) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_2Byte_plus_A0     = 0x22, //!< EEPROM Address is 17-bits: S (1010A2A1x _) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_2Byte_plus_A1A0   = 0x62, //!< EEPROM Address is 18-bits: S (1010A2x x _) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_2Byte_plus_A2A1A0 = 0xE2, //!< EEPROM Address is 19-bits: S (1010x x x _) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_3Bytes            =    3, //!< EEPROM Address is 24-bits: S (1010A2A1A0_) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_3Byte_plus_A0     = 0x23, //!< EEPROM Address is 25-bits: S (1010A2A1x _) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_3Byte_plus_A1A0   = 0x63, //!< EEPROM Address is 26-bits: S (1010A2x x _) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_3Byte_plus_A2A1A0 = 0xE3, //!< EEPROM Address is 27-bits: S (1010x x x _) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
+  EEPROM_ADDRESS_4Bytes            =    4, //!< EEPROM Address is 32-bits: S (1010A2A1A0_) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx) (xxxxxxxx)
 
   EEPROM_ADDRESS_Bytes_MASK        = 0x0F, //!< Mask for EEPROM Address to bytes
   EEPROM_ADDRESS_plus_Ax_MASK      = 0xE0, //!< Mask for EEPROM Address to A0, A1, and/or A2
@@ -116,9 +116,9 @@ typedef struct EEPROM_Conf
   eEEPROM_ChipSelect ChipSelect;   //!< Indicate which chip select pins are used by the chip
   eEEPROM_AddressType AddressType; //!< Indicate the EEPROM address type
   uint8_t PageWriteTime;           //!< Maximum time to write a page (for timeout) in millisecond
-  uint16_t PageSize;
-  uint32_t ArrayByteSize;
-  uint32_t MaxI2CclockSpeed;
+  uint16_t PageSize;               //!< This is the page size of the device memory in bytes
+  uint32_t ArrayByteSize;          //!< This is the memory total size in bytes
+  uint32_t MaxI2CclockSpeed;       //!< This is the maximum I2C SCL clock speed of the device in Hertz
 } EEPROM_Conf;
 
 //-----------------------------------------------------------------------------

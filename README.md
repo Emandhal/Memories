@@ -1,4 +1,4 @@
-# EEPROM drivers
+# I2C EEPROM drivers
 Drivers in this repository are fully hardware independant **Drivers** primarily aimed at embedded world
 Here are drivers of:
 * Generic I2C EEPROM compatible with:
