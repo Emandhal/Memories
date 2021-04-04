@@ -188,12 +188,12 @@ eERRORRESULT EERAM47x16_StoreSRAMtoEEPROM(EERAM47x16 *pComp, bool forceStore, bo
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error = ERR_OK;
+  EERAM47x16_Status_Register Reg;
   bool Store = forceStore;
 
   //--- Check the need of store operation ---
   if (forceStore == false)                                                            // Check register Status.AM if the store is not forced
   {
-    EERAM47x16_Status_Register Reg;
     Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                              // Get the status register
     if (Error != ERR_OK) return Error;                                                // If there is an error while reading register, then return the error
     Store = ((Reg.Status & EERAM47x16_ARRAY_MODIFIED) > 0);                           // If the array has been modified, flag the store
@@ -207,8 +207,15 @@ eERRORRESULT EERAM47x16_StoreSRAMtoEEPROM(EERAM47x16 *pComp, bool forceStore, bo
     //--- Wait the end of store if asked ---
     if (waitEndOfStore)
     {
-      uint32_t Timeout = pComp->fnGetCurrentms() + EERAM47x16_STORE_TIMEOUT;
-      while (pComp->fnGetCurrentms() < Timeout);                                      // Wait the end of timeout
+      Reg.Status = EERAM47x16_ARRAY_MODIFIED;
+      uint32_t Timeout = pComp->fnGetCurrentms() + EERAM47x16_STORE_TIMEOUT + 1; // Wait at least STORE_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
+      while (true)
+      {
+        Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                // Get the status register
+        if ((Error != ERR_OK) && (Error != ERR__I2C_NACK)) return Error;    // If there is an error while calling EERAM47x16_ReadRegister() then return the error
+        if ((Reg.Status & EERAM47x16_ARRAY_MODIFIED) == 0) break;           // The store is finished, all went fine
+        if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
+      }
     }
   }
   return Error;
@@ -225,6 +232,7 @@ eERRORRESULT EERAM47x16_RecallEEPROMtoSRAM(EERAM47x16 *pComp, bool waitEndOfReca
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error = ERR_OK;
+  EERAM47x16_Status_Register Reg;
 
   //--- Send a recall operation ---
   uint8_t Data = EERAM47x16_RECALL_COMMAND;
@@ -233,8 +241,15 @@ eERRORRESULT EERAM47x16_RecallEEPROMtoSRAM(EERAM47x16 *pComp, bool waitEndOfReca
   //--- Wait the end of recall if asked ---
   if (waitEndOfRecall)
   {
-    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM47x16_RECALL_TIMEOUT;
-    while (pComp->fnGetCurrentms() < Timeout);                                      // Wait the end of timeout
+    Reg.Status = EERAM47x16_ARRAY_MODIFIED;
+    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM47x16_RECALL_TIMEOUT + 1; // Wait at least RECALL_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
+    while (true)
+    {
+      Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                // Get the status register
+      if ((Error != ERR_OK) && (Error != ERR__I2C_NACK)) return Error;    // If there is an error while calling EERAM47x16_ReadRegister() then return the error
+      if ((Reg.Status & EERAM47x16_ARRAY_MODIFIED) == 0) break;           // The recall is finished, all went fine
+      if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
+    }
   }
   return ERR_OK;
 }
