@@ -198,7 +198,7 @@ typedef eERRORRESULT (*AT24MAC602_I2CInit_Func)(void *pIntDev, const uint32_t sc
  * @param[in] stop Indicate if the transfer needs a stop after the last byte sent
  * @return Returns an #eERRORRESULT value enum
  */
-typedef eERRORRESULT (*AT24MAC602_I2CTranfert_Func)(void *pIntDev, const uint8_t deviceAddress, uint8_t *data, size_t byteCount, bool start, bool stop);
+typedef eERRORRESULT (*AT24MAC602_I2CTransfer_Func)(void *pIntDev, const uint8_t deviceAddress, uint8_t *data, size_t byteCount, bool start, bool stop);
 
 
 /*! @brief Function that gives the current millisecond of the system to the driver
@@ -221,7 +221,7 @@ struct AT24MAC602
   //--- Interface driver call functions ---
   void *InterfaceDevice;                      //!< This is the pointer that will be in the first parameter of all interface call functions
   AT24MAC602_I2CInit_Func fnI2C_Init;         //!< This function will be called at driver initialization to configure the interface driver
-  AT24MAC602_I2CTranfert_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+  AT24MAC602_I2CTransfer_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
 
   //--- Time call function ---
   GetCurrentms_Func fnGetCurrentms;           //!< This function will be called when the driver need to get current millisecond
