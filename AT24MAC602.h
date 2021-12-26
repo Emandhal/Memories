@@ -1,7 +1,7 @@
 /*******************************************************************************
  * @file    AT24MAC602.h
- * @author  FMA
- * @version 1.0.0
+ * @author  Fabien 'Emandhal' MAILLY
+ * @version 1.1.0
  * @date    24/08/2020
  * @brief   AT24MAC602 driver
  *
@@ -32,56 +32,34 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *****************************************************************************/
+
+/* Revision history:
+ * 1.1.0    I2C interface rework
+ * 1.0.0    Release version
+ *****************************************************************************/
 #ifndef AT24MAC602_H_INC
 #define AT24MAC602_H_INC
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-//-----------------------------------------------------------------------------
 #include "ErrorsDef.h"
-/// @cond 0
-/**INDENT-OFF**/
+#include "I2C_Interface.h"
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
-#endif
-/**INDENT-ON**/
-/// @endcond
-//-----------------------------------------------------------------------------
-
-#ifndef __PACKED__
-# ifndef __cplusplus
-#   define __PACKED__  __attribute__((packed))
-# else
-#   define __PACKED__
-# endif
-#endif
-
-#ifndef PACKITEM
-# ifndef __cplusplus
-#   define PACKITEM
-# else
-#   define PACKITEM  __pragma(pack(push, 1))
-# endif
-#endif
-
-#ifndef UNPACKITEM
-# ifndef __cplusplus
-#   define UNPACKITEM
-# else
-#   define UNPACKITEM  __pragma(pack(pop))
-# endif
+#  define __AT24MAC602_PACKED__
+#  define AT24MAC602_PACKITEM    __pragma(pack(push, 1))
+#  define AT24MAC602_UNPACKITEM  __pragma(pack(pop))
+#else
+#  define __AT24MAC602_PACKED__  __attribute__((packed))
+#  define AT24MAC602_PACKITEM
+#  define AT24MAC602_UNPACKITEM
 #endif
 
 //-----------------------------------------------------------------------------
 
 //! This macro is used to check the size of an object. If not, it will raise a "divide by 0" error at compile time
-#ifndef ControlItemSize
-#  define ControlItemSize(item, size)  enum { item##_size_must_be_##size##_bytes = 1 / (int)(!!(sizeof(item) == size)) }
-#endif
+#define AT24MAC602_CONTROL_ITEM_SIZE(item, size)  enum { item##_size_must_be_##size##_bytes = 1 / (int)(!!(sizeof(item) == size)) }
 
 //-----------------------------------------------------------------------------
 
@@ -94,9 +72,6 @@ extern "C" {
 
 
 // Device definitions
-#define AT24MAC602_I2C_READ                 ( 0x01 ) //!< Standard I2C LSB bit to set
-#define AT24MAC602_I2C_WRITE                ( 0xFE ) //!< Standard I2C bit mask which clear the LSB
-
 #define AT24MAC602_EEPROM_CHIPADDRESS_BASE  ( 0xA0 ) //!< EEPROM chip base address
 #define AT24MAC602_PSWP_CHIPADDRESS_BASE    ( 0x60 ) //!< Permanent Software Write Protection (PSWP) chip base address
 #define AT24MAC602_SERIAL_CHIPADDRESS_BASE  ( 0xB0 ) //!< Unique Serial Number chip base address
@@ -139,8 +114,8 @@ extern "C" {
 #define EUI64_LEN      ( EUI64_OUI_LEN + EUI64_NIC_LEN )
 
 //! 64-bits Extended Unique Identifier
-PACKITEM
-typedef union __PACKED__ AT24MAC602_MAC_EUI64
+AT24MAC602_PACKITEM
+typedef union __AT24MAC602_PACKED__ AT24MAC602_MAC_EUI64
 {
     uint8_t EUI64[EUI64_LEN];
     struct
@@ -155,8 +130,8 @@ typedef union __PACKED__ AT24MAC602_MAC_EUI64
         uint8_t       : 6; //!< 2-7
     } Bits;
 } AT24MAC602_MAC_EUI64;
-UNPACKITEM
-ControlItemSize(AT24MAC602_MAC_EUI64, EUI64_LEN);
+AT24MAC602_UNPACKITEM
+AT24MAC602_CONTROL_ITEM_SIZE(AT24MAC602_MAC_EUI64, EUI64_LEN);
 
 //-----------------------------------------------------------------------------
 
@@ -174,33 +149,6 @@ ControlItemSize(AT24MAC602_MAC_EUI64, EUI64_LEN);
 typedef struct AT24MAC602 AT24MAC602; //! Typedef of AT24MAC602 device object structure
 
 
-
-/*! @brief Interface function for driver initialization of the AT24MAC602
- *
- * This function will be called at driver initialization to configure the interface driver
- * @param[in] *pIntDev Is the AT24MAC602.InterfaceDevice of the device that call the interface initialization
- * @param[in] sclFreq Is the SCL frequency in Hz to set at the interface initialization
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*AT24MAC602_I2CInit_Func)(void *pIntDev, const uint32_t sclFreq);
-
-
-/*! @brief Interface function for I2C transfer of the AT24MAC602
- *
- * This function will be called when the driver needs to transfer data over the I2C communication with the device
- * Can be a read of data or a transmit of data. It also indicate if it needs a start and/or a stop
- * @warning A I2CInit_Func() must be called before using this function
- * @param[in] *pIntDev Is the AT24MAC602.InterfaceDevice of the device that call the I2C transfer
- * @param[in] deviceAddress Is the device address on the bus (8-bits only). The LSB bit indicate if it is a I2C Read (bit at '1') or a I2C Write (bit at '0')
- * @param[in,out] *data Is a pointer to memory data to write in case of I2C Write, or where the data received will be stored in case of I2C Read (can be NULL if no data transfer other than chip address)
- * @param[in] byteCount Is the byte count to write over the I2C bus or the count of byte to read over the bus
- * @param[in] start Indicate if the transfer needs a start (in case of a new transfer) or restart (if the previous transfer have not been stopped)
- * @param[in] stop Indicate if the transfer needs a stop after the last byte sent
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*AT24MAC602_I2CTransfer_Func)(void *pIntDev, const uint8_t deviceAddress, uint8_t *data, size_t byteCount, bool start, bool stop);
-
-
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
  * This function will be called when the driver needs to get current millisecond
@@ -213,21 +161,21 @@ typedef uint32_t (*GetCurrentms_Func)(void);
 //! AT24MAC602 device object structure
 struct AT24MAC602
 {
-  void *UserDriverData;                       //!< Optional, can be used to store driver data or NULL
-
-  //--- Interface clocks ---
-  uint32_t I2C_ClockSpeed;                    //!< Clock frequency of the I2C interface in Hertz
+  void *UserDriverData;             //!< Optional, can be used to store driver data or NULL
 
   //--- Interface driver call functions ---
-  void *InterfaceDevice;                      //!< This is the pointer that will be in the first parameter of all interface call functions
-  AT24MAC602_I2CInit_Func fnI2C_Init;         //!< This function will be called at driver initialization to configure the interface driver
-  AT24MAC602_I2CTransfer_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+#ifdef USE_DYNAMIC_INTERFACE
+  I2C_Interface* I2C;               //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+#else
+  I2C_Interface I2C;                //!< This is the I2C_Interface descriptor that will be used to communicate with the device
+#endif
+  uint32_t I2CclockSpeed;           //!< Clock frequency of the I2C interface in Hertz
 
   //--- Time call function ---
-  GetCurrentms_Func fnGetCurrentms;           //!< This function will be called when the driver need to get current millisecond
+  GetCurrentms_Func fnGetCurrentms; //!< This function will be called when the driver need to get current millisecond
 
   //--- Device address ---
-  uint8_t AddrA2A1A0;                         //!< Device configurable address A2, A1, and A0. You can use the macro AT24MAC602_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210. where 2 is A2, 1 is A1, 0 is A0, and '.' are fixed by device
+  uint8_t AddrA2A1A0;               //!< Device configurable address A2, A1, and A0. You can use the macro AT24MAC602_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210. where 2 is A2, 1 is A1, 0 is A0, and '.' are fixed by device
 };
 //-----------------------------------------------------------------------------
 
@@ -237,7 +185,7 @@ struct AT24MAC602
 
 /*! @brief AT24MAC602 initialization
  *
- * This function initializes the AT24MAC602 driver and call the initialization of the interface driver (SPI).
+ * This function initializes the AT24MAC602 driver and call the initialization of the interface driver (I2C).
  * Next it checks parameters and configures the AT24MAC602
  * @param[in] *pComp Is the pointed structure of the device to be initialized
  * @return Returns an #eERRORRESULT value enum
@@ -263,7 +211,7 @@ bool AT24MAC602_IsReady(AT24MAC602 *pComp);
  * This function reads data from the EEPROM area of a AT24MAC602 device
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @param[in] address Is the address to read (can be inside a page)
- * @param[in] *data Is where the data will be stored
+ * @param[out] *data Is where the data will be stored
  * @param[in] size Is the size of the data array to read
  * @return Returns an #eERRORRESULT value enum
  */
@@ -282,6 +230,14 @@ eERRORRESULT AT24MAC602_ReadEEPROMData(AT24MAC602 *pComp, uint8_t address, uint8
  */
 eERRORRESULT AT24MAC602_WriteEEPROMData(AT24MAC602 *pComp, uint8_t address, const uint8_t* data, size_t size);
 
+
+
+/*! @brief Wait the end of write to the AT24MAC602 device
+ * @param[in] *pComp Is the pointed structure of the device to be used
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT AT24MAC602_WaitEndOfWrite(AT24MAC602 *pComp);
+
 //********************************************************************************************************************
 
 
@@ -290,7 +246,7 @@ eERRORRESULT AT24MAC602_WriteEEPROMData(AT24MAC602 *pComp, uint8_t address, cons
  *
  * This function get a EUI-64 data from the AT24MAC602 device
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] *pEUI64 Is the pointed structure of the EUI-64 structure
+ * @param[out] *pEUI64 Is the pointed structure of the EUI-64 structure
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT AT24MAC602_GetEUI64(AT24MAC602 *pComp, AT24MAC602_MAC_EUI64 *pEUI64);
@@ -303,7 +259,7 @@ eERRORRESULT AT24MAC602_GetEUI64(AT24MAC602 *pComp, AT24MAC602_MAC_EUI64 *pEUI64
  *
  * This function get the 16 bytes Serial Number from the AT24MAC602 device
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] *dataSerialNum Is the pointed array where the Serial Numbre will be stored. This array have to be 16 bytes in length
+ * @param[out] *dataSerialNum Is the pointed array where the Serial Numbre will be stored. This array have to be 16 bytes in length
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT AT24MAC602_Get128bitsSerialNumber(AT24MAC602 *pComp, uint8_t *dataSerialNum);
@@ -327,17 +283,8 @@ eERRORRESULT AT24MAC602_SetPermanentWriteProtection(AT24MAC602 *pComp);
 
 
 //-----------------------------------------------------------------------------
-#undef __PACKED__
-#undef PACKITEM
-#undef UNPACKITEM
-#undef ControlItemSize
-//-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------
 #endif /* AT24MAC602_H_INC */

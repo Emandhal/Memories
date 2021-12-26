@@ -1,8 +1,8 @@
 /*******************************************************************************
  * @file    47x16.h
- * @author  FMA
- * @version 1.0.0
- * @date    24/08/2020
+ * @author  Fabien 'Emandhal' MAILLY
+ * @version 1.1.0
+ * @date    23/10/2021
  * @brief   EERAM47x16 driver
  *
  * I2C-Compatible (2-wire) 16-Kbit (2kB x 8) Serial EERAM
@@ -30,56 +30,33 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *****************************************************************************/
+
+/* Revision history:
+ * 1.0.1    I2C interface rework for I2C DMA use
+ * 1.0.0    Release version
+ *****************************************************************************/
 #ifndef EERAM47x16_H_INC
 #define EERAM47x16_H_INC
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-//-----------------------------------------------------------------------------
 #include "ErrorsDef.h"
-/// @cond 0
-/**INDENT-OFF**/
+#include "I2C_Interface.h"
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
+#  define __EERAM47x16_PACKED__
+#  define EERAM47x16_PACKITEM    __pragma(pack(push, 1))
+#  define EERAM47x16_UNPACKITEM  __pragma(pack(pop))
+#else
+#  define __EERAM47x16_PACKED__  __attribute__((packed))
+#  define EERAM47x16_PACKITEM
+#  define EERAM47x16_UNPACKITEM
 #endif
-/**INDENT-ON**/
-/// @endcond
-//-----------------------------------------------------------------------------
-
-#ifndef __PACKED__
-# ifndef __cplusplus
-#   define __PACKED__  __attribute__((packed))
-# else
-#   define __PACKED__
-# endif
-#endif
-
-#ifndef PACKITEM
-# ifndef __cplusplus
-#   define PACKITEM
-# else
-#   define PACKITEM  __pragma(pack(push, 1))
-# endif
-#endif
-
-#ifndef UNPACKITEM
-# ifndef __cplusplus
-#   define UNPACKITEM
-# else
-#   define UNPACKITEM  __pragma(pack(pop))
-# endif
-#endif
-
 //-----------------------------------------------------------------------------
 
 //! This macro is used to check the size of an object. If not, it will raise a "divide by 0" error at compile time
-#ifndef ControlItemSize
-#  define ControlItemSize(item, size)  enum { item##_size_must_be_##size##_bytes = 1 / (int)(!!(sizeof(item) == size)) }
-#endif
+#define EERAM47x16_CONTROL_ITEM_SIZE(item, size)  enum { item##_size_must_be_##size##_bytes = 1 / (int)(!!(sizeof(item) == size)) }
 
 //-----------------------------------------------------------------------------
 
@@ -91,9 +68,6 @@ extern "C" {
 
 
 // Device definitions
-#define EERAM47x16_I2C_READ               ( 0x01 ) //!< Standard I2C LSB bit to set
-#define EERAM47x16_I2C_WRITE              ( 0xFE ) //!< Standard I2C bit mask which clear the LSB
-
 #define EERAM47x16_SRAM_CHIPADDRESS_BASE  ( 0xA0 ) //!< SRAM chip base address
 #define EERAM47x16_REG_CHIPADDRESS_BASE   ( 0x30 ) //!< Control Register chip base address
 #define EERAM47x16_CHIPADDRESS_BASE_MASK  ( 0xF0 ) //!< Base chip address mask
@@ -128,8 +102,8 @@ extern "C" {
 //********************************************************************************************************************
 
 //! Status Register
-PACKITEM
-typedef union __PACKED__ EERAM47x16_Status_Register
+EERAM47x16_PACKITEM
+typedef union __EERAM47x16_PACKED__ EERAM47x16_Status_Register
 {
   uint8_t Status;
   struct
@@ -141,8 +115,8 @@ typedef union __PACKED__ EERAM47x16_Status_Register
     uint8_t AM   : 1; //!< 7   - Array Modified bit: '1' = SRAM array has been modified ; '0' = SRAM array has not been modified
   } Bits;
 } EERAM47x16_Status_Register;
-UNPACKITEM;
-ControlItemSize(EERAM47x16_Status_Register, 1);
+EERAM47x16_UNPACKITEM;
+EERAM47x16_CONTROL_ITEM_SIZE(EERAM47x16_Status_Register, 1);
 
 #define EERAM47x16_EVENT_DETECTED  (0x1u << 0) //!< An event was detected on the HS pin
 #define EERAM47x16_ASE_ENABLE      (0x1u << 1) //!< Enable Auto-Store feature
@@ -176,34 +150,23 @@ typedef enum
 //********************************************************************************************************************
 // EERAM47x16 Driver API
 //********************************************************************************************************************
+
+#define EERAM47x16_DMA_TRANSFER_IN_PROGRESS_Pos        ( 0 )
+#define EERAM47x16_DMA_TRANSFER_IN_PROGRESS            ( 1u << EERAM47x16_DMA_TRANSFER_IN_PROGRESS_Pos ) // DMA transfer in progress
+#define EERAM47x16_IS_DMA_TRANSFER_IN_PROGRESS(value)  (((uint16_t)(value) & (1u << EERAM47x16_DMA_TRANSFER_IN_PROGRESS_Pos)) > 0) // Is DMA transfer in progress?
+#define EERAM47x16_NO_DMA_TRANSFER_IN_PROGRESS_SET     (~EERAM47x16_DMA_TRANSFER_IN_PROGRESS)            // Mask to set no DMA transfer to the device
+
+#define EERAM47x16_TRANSACTION_NUMBER_Pos           ( 1 )
+#define EERAM47x16_TRANSACTION_NUMBER_Mask          ( 0x3F << EERAM47x16_TRANSACTION_NUMBER_Pos )
+#define EERAM47x16_TRANSACTION_NUMBER_SET(value)    (((uint16_t)(value) << EERAM47x16_TRANSACTION_NUMBER_Pos) & EERAM47x16_TRANSACTION_NUMBER_Mask) // Set the transaction number to internal config
+#define EERAM47x16_TRANSACTION_NUMBER_GET(value)    (((uint16_t)(value) & EERAM47x16_TRANSACTION_NUMBER_Mask) >> EERAM47x16_TRANSACTION_NUMBER_Pos) // Get the transaction number to internal config
+#define EERAM47x16_TRANSACTION_NUMBER_CLEAR(value)  value &= ~EERAM47x16_TRANSACTION_NUMBER_Mask // Clears the transaction number of internal config
+
+//-----------------------------------------------------------------------------
+
+
 typedef struct EERAM47x16 EERAM47x16; //! Typedef of EERAM47x16 device object structure
-
-
-
-/*! @brief Interface function for driver initialization of the EERAM47x16
- *
- * This function will be called at driver initialization to configure the interface driver
- * @param[in] *pIntDev Is the EERAM47x16.InterfaceDevice of the device that call the interface initialization
- * @param[in] sclFreq Is the SCL frequency in Hz to set at the interface initialization
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*EERAM47x16_I2CInit_Func)(void *pIntDev, const uint32_t sclFreq);
-
-
-/*! @brief Interface function for I2C transfer of the EERAM47x16
- *
- * This function will be called when the driver needs to transfer data over the I2C communication with the device
- * Can be a read of data or a transmit of data. It also indicate if it needs a start and/or a stop
- * @warning A I2CInit_Func() must be called before using this function
- * @param[in] *pIntDev Is the EERAM47x16.InterfaceDevice of the device that call the I2C transfer
- * @param[in] deviceAddress Is the device address on the bus (8-bits only). The LSB bit indicate if it is a I2C Read (bit at '1') or a I2C Write (bit at '0')
- * @param[in,out] *data Is a pointer to memory data to write in case of I2C Write, or where the data received will be stored in case of I2C Read (can be NULL if no data transfer other than chip address)
- * @param[in] byteCount Is the byte count to write over the I2C bus or the count of byte to read over the bus
- * @param[in] start Indicate if the transfer needs a start (in case of a new transfer) or restart (if the previous transfer have not been stopped)
- * @param[in] stop Indicate if the transfer needs a stop after the last byte sent
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*EERAM47x16_I2CTransfer_Func)(void *pIntDev, const uint8_t deviceAddress, uint8_t *data, size_t byteCount, bool start, bool stop);
+typedef uint8_t TEERAM47x16DriverInternal; //! Alias for Driver Internal data flags
 
 
 /*! @brief Function that gives the current millisecond of the system to the driver
@@ -218,21 +181,22 @@ typedef uint32_t (*GetCurrentms_Func)(void);
 //! EERAM47x16 device object structure
 struct EERAM47x16
 {
-  void *UserDriverData;                       //!< Optional, can be used to store driver data or NULL
-
-  //--- Interface clocks ---
-  uint32_t I2C_ClockSpeed;                    //!< Clock frequency of the I2C interface in Hertz
+  void *UserDriverData;                     //!< Optional, can be used to store driver data or NULL
+  TEERAM47x16DriverInternal InternalConfig; //!< DO NOT USE OR CHANGE THIS VALUE, IT'S THE INTERNAL DRIVER CONFIGURATION
 
   //--- Interface driver call functions ---
-  void *InterfaceDevice;                      //!< This is the pointer that will be in the first parameter of all interface call functions
-  EERAM47x16_I2CInit_Func fnI2C_Init;         //!< This function will be called at driver initialization to configure the interface driver
-  EERAM47x16_I2CTransfer_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+#ifdef USE_DYNAMIC_INTERFACE
+  I2C_Interface* I2C;                       //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+#else
+  I2C_Interface I2C;                        //!< This is the I2C_Interface descriptor that will be used to communicate with the device
+#endif
+  uint32_t I2CclockSpeed;                   //!< Clock frequency of the I2C interface in Hertz
 
   //--- Time call function ---
-  GetCurrentms_Func fnGetCurrentms;           //!< This function will be called when the driver need to get current millisecond
+  GetCurrentms_Func fnGetCurrentms;         //!< This function will be called when the driver need to get current millisecond
 
   //--- Device address ---
-  uint8_t AddrA2A1;                           //!< Device configurable address A2, and A1. You can use the macro EERAM47x16_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....21.. where 2 is A2, 1 is A1, and '.' are fixed by device
+  uint8_t AddrA2A1;                         //!< Device configurable address A2, and A1. You can use the macro EERAM47x16_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....21.. where 2 is A2, 1 is A1, and '.' are fixed by device
 };
 //-----------------------------------------------------------------------------
 
@@ -242,7 +206,7 @@ struct EERAM47x16
 
 /*! @brief EERAM47x16 initialization
  *
- * This function initializes the EERAM47x16 driver and call the initialization of the interface driver (SPI).
+ * This function initializes the EERAM47x16 driver and call the initialization of the interface driver (I2C).
  * Next it checks parameters and configures the EERAM47x16
  * @param[in] *pComp Is the pointed structure of the device to be initialized
  * @return Returns an #eERRORRESULT value enum
@@ -267,8 +231,8 @@ bool EERAM47x16_IsReady(EERAM47x16 *pComp);
  *
  * This function reads data from the SRAM area of a EERAM47x16 device
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] address Is the address to read (can be inside a page)
- * @param[in] *data Is where the data will be stored
+ * @param[in] address Is the address to read
+ * @param[out] *data Is where the data will be stored
  * @param[in] size Is the size of the data array to read
  * @return Returns an #eERRORRESULT value enum
  */
@@ -279,10 +243,24 @@ eERRORRESULT EERAM47x16_ReadSRAMData(EERAM47x16 *pComp, uint16_t address, uint8_
  *
  * This function reads the content of the Status register of a EERAM47x16 device
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] *data Is where the data will be stored
+ * @param[out] *data Is where the data will be stored
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM47x16_ReadRegister(EERAM47x16 *pComp, uint8_t* data);
+
+
+/*! @brief Read SRAM data with DMA from the EERAM47x16 device
+ *
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * In case of no DMA, the function act like a EERAM47x16_ReadSRAMData() function
+ * @warning Never touch the data processed by the DMA before its completion
+ * @param[in] *pComp Is the pointed structure of the device to be used
+ * @param[in] address Is the address to read
+ * @param[out] *data Is where the data will be stored
+ * @param[in] size Is the size of the data array to read
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT EERAM47x16_ReadSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address, uint8_t* data, size_t size);
 
 //********************************************************************************************************************
 
@@ -292,7 +270,7 @@ eERRORRESULT EERAM47x16_ReadRegister(EERAM47x16 *pComp, uint8_t* data);
  *
  * This function writes data to the SRAM area of a EERAM47x16 device
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] address Is the address where data will be written (can be inside a page)
+ * @param[in] address Is the address where data will be stored
  * @param[in] *data Is the data array to store
  * @param[in] size Is the size of the data array to write
  * @return Returns an #eERRORRESULT value enum
@@ -306,11 +284,25 @@ eERRORRESULT EERAM47x16_WriteSRAMData(EERAM47x16 *pComp, uint16_t address, const
  * Use the address EERAM47x16_STATUS_REGISTER_ADDR (0x00) to write to the status register
  * Use the address EERAM47x16_COMMAND_REGISTER_ADDR (0x55) to write to the command register
  * @param[in] *pComp Is the pointed structure of the device to be used
- * @param[in] address Is the address where data will be written (can be inside a page)
+ * @param[in] address Is the address where data will be stored
  * @param[in] *data Is the data array to store
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t* data);
+
+
+/*! @brief Write SRAM data with DMA to the EERAM47x16 device
+ *
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * In case of no DMA, the function act like a EERAM47x16_WriteSRAMData() function
+ * @warning Never touch the data processed by the DMA before its completion
+ * @param[in] *pComp Is the pointed structure of the device to be used
+ * @param[in] address Is the address where data will be stored
+ * @param[in] *data Is the data array to store
+ * @param[in] size Is the size of the data array to write
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT EERAM47x16_WriteSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address, const uint8_t* data, size_t size);
 
 //********************************************************************************************************************
 
@@ -378,17 +370,8 @@ inline eERRORRESULT EERAM47x16_GetStatus(EERAM47x16 *pComp, EERAM47x16_Status_Re
 
 
 //-----------------------------------------------------------------------------
-#undef __PACKED__
-#undef PACKITEM
-#undef UNPACKITEM
-#undef ControlItemSize
-//-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------
 #endif /* EERAM47x16_H_INC */

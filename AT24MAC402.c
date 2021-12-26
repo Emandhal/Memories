@@ -1,27 +1,31 @@
 /*******************************************************************************
  * @file    AT24MAC402.c
- * @author  FMA
- * @version 1.0.0
+ * @author  Fabien 'Emandhal' MAILLY
+ * @version 1.1.0
  * @date    24/08/2020
  * @brief   AT24MAC402 driver
  *
  * I2C-Compatible (2-wire) 2-Kbit (256kB x 8) Serial EEPROM
  * with a Factory-Programmed EUI-48™ Address
  * plus an Embedded Unique 128-bit Serial Number
- * Follow datasheet AT24MAC402 Rev.8808E (Jan  2015)
+ * Follow datasheet AT24MAC402 Rev.8808E (Jan 2015)
  ******************************************************************************/
 
 //-----------------------------------------------------------------------------
 #include "AT24MAC402.h"
 //-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 #include <cstdint>
 extern "C" {
 #endif
-/**INDENT-ON**/
-/// @endcond
+//-----------------------------------------------------------------------------
+
+#ifdef USE_DYNAMIC_INTERFACE
+#  define GET_I2C_INTERFACE  pComp->I2C
+#else
+#  define GET_I2C_INTERFACE  &pComp->I2C
+#endif
+
 //-----------------------------------------------------------------------------
 
 
@@ -48,12 +52,15 @@ eERRORRESULT Init_AT24MAC402(AT24MAC402 *pComp)
 {
 #ifdef CHECK_NULL_PARAM
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
+#endif
+  I2C_Interface* pI2C = GET_I2C_INTERFACE;
+#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
 
-  if (pComp->I2C_ClockSpeed > AT24MAC402_I2CCLOCK_MAXSUP2V5) return ERR__I2C_FREQUENCY_ERROR;
-  Error = pComp->fnI2C_Init(pComp->InterfaceDevice, pComp->I2C_ClockSpeed);
+  if (pComp->I2CclockSpeed > AT24MAC402_I2CCLOCK_MAXSUP2V5) return ERR__I2C_FREQUENCY_ERROR;
+  Error = pI2C->fnI2C_Init(pI2C, pComp->I2CclockSpeed);
   if (Error != ERR_OK) return Error; // If there is an error while calling fnI2C_Init() then return the Error
 
   return (AT24MAC402_IsReady(pComp) ? ERR_OK : ERR__NO_DEVICE_DETECTED);
@@ -68,10 +75,21 @@ bool AT24MAC402_IsReady(AT24MAC402 *pComp)
 {
 #ifdef CHECK_NULL_PARAM
   if (pComp == NULL) return false;
-  if (pComp->fnI2C_Transfer == NULL) return false;
 #endif
-  uint8_t ChipAddrW = ((AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0) & AT24MAC402_I2C_WRITE);
-  return (pComp->fnI2C_Transfer(pComp->InterfaceDevice, ChipAddrW, NULL, 0, true, true) == ERR_OK); // Send only the chip address and get the Ack flag
+  I2C_Interface* pI2C = GET_I2C_INTERFACE;
+#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C->fnI2C_Transfer == NULL) return false;
+#endif
+  I2CInterface_Packet PacketDesc =
+  {
+    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_SIMPLE_TRANSFER),
+    I2C_MEMBER(ChipAddr    ) (AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0) & I2C_WRITE_ANDMASK,
+    I2C_MEMBER(Start       ) true,
+    I2C_MEMBER(pBuffer     ) NULL,
+    I2C_MEMBER(BufferSize  ) 0,
+    I2C_MEMBER(Stop        ) true,
+  };
+  return (pI2C->fnI2C_Transfer(pI2C, &PacketDesc) == ERR_OK); // Send only the chip address and get the Ack flag
 }
 
 
@@ -80,19 +98,30 @@ bool AT24MAC402_IsReady(AT24MAC402 *pComp)
 
 //**********************************************************************************************************************************************************
 // Write the byte address the AT24MAC402 (DO NOT USE DIRECTLY)
-static eERRORRESULT __AT24MAC402_WriteAddress(AT24MAC402 *pComp, const uint8_t chipAddr, uint8_t address)
+static eERRORRESULT __AT24MAC402_WriteAddress(AT24MAC402 *pComp, const uint8_t chipAddr, uint8_t address, const eI2C_TransferType transferType)
 {
 #ifdef CHECK_NULL_PARAM
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+#endif
+  I2C_Interface* pI2C = GET_I2C_INTERFACE;
+#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
-  uint8_t ChipAddrW = chipAddr & AT24MAC402_I2C_WRITE;
 
   //--- Send the address ---
-  Error = pComp->fnI2C_Transfer(pComp->InterfaceDevice, ChipAddrW, &address, 1, true, false); // Transfer the address
-  if (Error == ERR__I2C_NACK) return ERR__NOT_READY;                                          // If the device receive a NAK, then the device is not ready
-  if (Error == ERR__I2C_NACK_DATA) return ERR__I2C_INVALID_ADDRESS;                           // If the device receive a NAK while transferring data, then this is an invalid address
+  I2CInterface_Packet PacketDesc =
+  {
+    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType),
+    I2C_MEMBER(ChipAddr    ) chipAddr & I2C_WRITE_ANDMASK,
+    I2C_MEMBER(Start       ) true,
+    I2C_MEMBER(pBuffer     ) &address,
+    I2C_MEMBER(BufferSize  ) 1,
+    I2C_MEMBER(Stop        ) false,
+  };
+  Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc);                  // Transfer the address
+  if (Error == ERR__I2C_NACK) return ERR__NOT_READY;                // If the device receive a NAK, then the device is not ready
+  if (Error == ERR__I2C_NACK_DATA) return ERR__I2C_INVALID_ADDRESS; // If the device receive a NAK while transferring data, then this is an invalid address
   return Error;
 }
 
@@ -106,16 +135,29 @@ eERRORRESULT __AT24MAC402_ReadPage(AT24MAC402 *pComp, uint8_t chipAddr, uint8_t 
 {
 #ifdef CHECK_NULL_PARAM
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+#endif
+  I2C_Interface* pI2C = GET_I2C_INTERFACE;
+#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > AT24MAC402_PAGE_SIZE) return ERR__OUT_OF_RANGE;
   eERRORRESULT Error;
-  uint8_t ChipAddrR = chipAddr | AT24MAC402_I2C_READ;
 
   //--- Read the page ---
-  Error = __AT24MAC402_WriteAddress(pComp, chipAddr, address);                                // Start a write at address with the device
-  if (Error == ERR_OK)                                                                        // If there is no error while writing address then
-    Error = pComp->fnI2C_Transfer(pComp->InterfaceDevice, ChipAddrR, data, size, true, true); // Restart a read transfer, get the data and stop transfer
+  Error = __AT24MAC402_WriteAddress(pComp, chipAddr, address, I2C_WRITE_THEN_READ_FIRST_PART); // Start a write at address with the device
+  if (Error == ERR_OK)                                                                         // If there is no error while writing address then
+  {
+    I2CInterface_Packet PacketDesc =
+    {
+      I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_WRITE_THEN_READ_SECOND_PART),
+      I2C_MEMBER(ChipAddr    ) (chipAddr | I2C_READ_ORMASK),
+      I2C_MEMBER(Start       ) true,
+      I2C_MEMBER(pBuffer     ) data,
+      I2C_MEMBER(BufferSize  ) size,
+      I2C_MEMBER(Stop        ) true,
+    };
+    Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc); // Restart a read transfer, get the data and stop transfer
+  }
   return Error;
 }
 
@@ -132,7 +174,7 @@ eERRORRESULT AT24MAC402_ReadEEPROMData(AT24MAC402 *pComp, uint8_t address, uint8
   if ((address + size) > AT24MAC402_EEPROM_SIZE) return ERR__OUT_OF_MEMORY;
   eERRORRESULT Error;
   uint8_t PageRemData;
-  uint8_t ChipAddr = AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
+  const uint8_t ChipAddr = AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
 
   //--- Cut data to read into pages ---
   while (size > 0)
@@ -166,17 +208,31 @@ eERRORRESULT __AT24MAC402_WritePage(AT24MAC402 *pComp, uint8_t chipAddr, uint8_t
 {
 #ifdef CHECK_NULL_PARAM
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+#endif
+  I2C_Interface* pI2C = GET_I2C_INTERFACE;
+#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > AT24MAC402_PAGE_SIZE) return ERR__OUT_OF_RANGE;
   eERRORRESULT Error;
-  uint8_t ChipAddrW = (chipAddr & AT24MAC402_I2C_WRITE);
   uint8_t* pData = (uint8_t*)data;
+  const uint8_t ChipAddr = (chipAddr & I2C_WRITE_ANDMASK);
 
   //--- Write the page ---
-  Error = __AT24MAC402_WriteAddress(pComp, ChipAddrW, address);                         // Start a write at address with the device
-  if (Error == ERR_OK)                                                                  // If there is no error while writing address then
-    Error = pComp->fnI2C_Transfer(pComp->InterfaceDevice, 0, pData, size, false, true); // Continue the transfer by sending the data and stop transfer (chip address will not be used)
+  Error = __AT24MAC402_WriteAddress(pComp, ChipAddr, address, I2C_WRITE_THEN_WRITE_FIRST_PART); // Start a write at address with the device
+  if (Error == ERR_OK)                                                                          // If there is no error while writing address then
+  {
+    I2CInterface_Packet PacketDesc =
+    {
+      I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_WRITE_THEN_WRITE_SECOND_PART),
+      I2C_MEMBER(ChipAddr    ) ChipAddr, // Chip address will not be used
+      I2C_MEMBER(Start       ) false,
+      I2C_MEMBER(pBuffer     ) pData,
+      I2C_MEMBER(BufferSize  ) size,
+      I2C_MEMBER(Stop        ) true,
+    };
+    Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc); // Continue the transfer by sending the data and stop transfer
+  }
   return Error;
 }
 
@@ -193,7 +249,7 @@ eERRORRESULT AT24MAC402_WriteEEPROMData(AT24MAC402 *pComp, uint8_t address, cons
   if ((address + size) > AT24MAC402_EEPROM_SIZE) return ERR__OUT_OF_MEMORY;
   eERRORRESULT Error;
   uint8_t PageRemData;
-  uint8_t ChipAddr = AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
+  const uint8_t ChipAddr = AT24MAC402_EEPROM_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
   uint32_t Timeout;
   uint8_t* pData = (uint8_t*)data;
 
@@ -220,6 +276,22 @@ eERRORRESULT AT24MAC402_WriteEEPROMData(AT24MAC402 *pComp, uint8_t address, cons
 }
 
 
+//==============================================================================
+// Wait the end of write to the AT24MAC402 device
+//==============================================================================
+eERRORRESULT AT24MAC402_WaitEndOfWrite(AT24MAC402 *pComp)
+{
+  //--- Write with timeout ---
+  uint32_t Timeout = pComp->fnGetCurrentms() + 6;                       // Wait at least 5ms (see tWR in Table 6-3 from datasheet AC Characteristics) + 1ms because GetCurrentms can be 1 cycle before the new ms
+  while (true)
+  {
+    if (AT24MAC402_IsReady(pComp)) break;                               // Wait the end of write, and exit if all went fine
+    if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout? return the error
+  }
+  return ERR_OK;
+}
+
+
 
 
 
@@ -229,10 +301,10 @@ eERRORRESULT AT24MAC402_WriteEEPROMData(AT24MAC402 *pComp, uint8_t address, cons
 //=============================================================================
 eERRORRESULT AT24MAC402_GetEUI48(AT24MAC402 *pComp, AT24MAC402_MAC_EUI48 *pEUI48)
 {
-  uint8_t ChipAddr = AT24MAC402_EUI_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
 #ifdef CHECK_NULL_PARAM
   if ((pComp == NULL) || (pEUI48 == NULL)) return ERR__PARAMETER_ERROR;
 #endif
+  const uint8_t ChipAddr = AT24MAC402_EUI_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
   return __AT24MAC402_ReadPage(pComp, ChipAddr, AT24MAC402_EUI48_MEMORYADDR, &pEUI48->EUI48[0], EUI48_LEN);
 }
 
@@ -277,7 +349,7 @@ eERRORRESULT AT24MAC402_Get128bitsSerialNumber(AT24MAC402 *pComp, uint8_t *dataS
 #ifdef CHECK_NULL_PARAM
   if ((pComp == NULL) || (dataSerialNum == NULL)) return ERR__PARAMETER_ERROR;
 #endif
-  uint8_t ChipAddr = AT24MAC402_SERIAL_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
+  const uint8_t ChipAddr = AT24MAC402_SERIAL_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
   return __AT24MAC402_ReadPage(pComp, ChipAddr, AT24MAC402_SERIAL_MEMORYADDR, dataSerialNum, AT24MAC402_SERIALNUMBER_LEN);
 }
 
@@ -294,7 +366,7 @@ eERRORRESULT AT24MAC402_SetPermanentWriteProtection(AT24MAC402 *pComp)
 #ifdef CHECK_NULL_PARAM
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  uint8_t ChipAddr = AT24MAC402_PSWP_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
+  const uint8_t ChipAddr = AT24MAC402_PSWP_CHIPADDRESS_BASE | pComp->AddrA2A1A0;
   return __AT24MAC402_WritePage(pComp, ChipAddr, 0x00, 0x00, 1);
 }
 
@@ -305,11 +377,7 @@ eERRORRESULT AT24MAC402_SetPermanentWriteProtection(AT24MAC402 *pComp)
 
 
 //-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------

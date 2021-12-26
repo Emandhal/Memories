@@ -1,8 +1,8 @@
 /*******************************************************************************
  * @file    EEPROM.h
  * @author  FMA
- * @version 1.0.0
- * @date    24/08/2020
+ * @version 1.1.0
+ * @date    30/10/2021
  * @brief   Generic EEPROM driver
  *
  * Generic I2C-Compatible (2-wire) Serial EEPROM
@@ -30,31 +30,24 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *****************************************************************************/
+
+/* Revision history:
+ * 1.1.0    I2C interface rework
+ *          Add EEPROM_WaitEndOfWrite() function
+ * 1.0.0    Release version
+ *****************************************************************************/
 #ifndef EEPROM_H_INC
 #define EEPROM_H_INC
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-//-----------------------------------------------------------------------------
 #include "ErrorsDef.h"
-/// @cond 0
-/**INDENT-OFF**/
+#include "I2C_Interface.h"
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------
-
-
-
-// Device definitions
-#define EEPROM_I2C_READ   ( 0x01 ) //!< Standard I2C LSB bit to set
-#define EEPROM_I2C_WRITE  ( 0xFE ) //!< Standard I2C bit mask which clear the LSB
 
 
 
@@ -178,33 +171,6 @@ extern const EEPROM_Conf EERAM47L16_Conf, EERAM47C16_Conf;
 typedef struct EEPROM EEPROM; //! Typedef of EEPROM device object structure
 
 
-
-/*! @brief Interface function for driver initialization of the EEPROM
- *
- * This function will be called at driver initialization to configure the interface driver
- * @param[in] *pIntDev Is the EEPROM.InterfaceDevice of the device that call the interface initialization
- * @param[in] sclFreq Is the SCL frequency in Hz to set at the interface initialization
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*EEPROM_I2CInit_Func)(void *pIntDev, const uint32_t sclFreq);
-
-
-/*! @brief Interface function for I2C transfer of the EEPROM
- *
- * This function will be called when the driver needs to transfer data over the I2C communication with the device
- * Can be a read of data or a transmit of data. It also indicates if it needs a start and/or a stop
- * @warning A I2CInit_Func() must be called before using this function
- * @param[in] *pIntDev Is the EEPROM.InterfaceDevice of the device that call the I2C transfer
- * @param[in] deviceAddress Is the device address on the bus (8-bits only). The LSB bit indicate if it is a I2C Read (bit at '1') or a I2C Write (bit at '0')
- * @param[in,out] *data Is a pointer to memory data to write in case of I2C Write, or where the data received will be stored in case of I2C Read (can be NULL if no data transfer other than chip address)
- * @param[in] byteCount Is the byte count to write over the I2C bus or the count of byte to read over the bus
- * @param[in] start Indicate if the transfer needs a start (in case of a new transfer) or restart (if the previous transfer has not been stopped)
- * @param[in] stop Indicate if the transfer needs a stop after the last byte sent
- * @return Returns an #eERRORRESULT value enum
- */
-typedef eERRORRESULT (*EEPROM_I2CTransfer_Func)(void *pIntDev, const uint8_t deviceAddress, uint8_t *data, size_t byteCount, bool start, bool stop);
-
-
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
  * This function will be called when the driver needs to get current millisecond
@@ -217,24 +183,24 @@ typedef uint32_t (*GetCurrentms_Func)(void);
 //! EEPROM device object structure
 struct EEPROM
 {
-  void *UserDriverData;                   //!< Optional, can be used to store driver data or NULL
+  void *UserDriverData;             //!< Optional, can be used to store driver data or NULL
 
   //--- EEPROM configuration ---
-  const EEPROM_Conf *Conf;                //!< This is the EEPROM configuration, this parameter is mandatory
-
-  //--- Interface clocks ---
-  uint32_t I2C_ClockSpeed;                //!< Clock frequency of the I2C interface in Hertz
+  const EEPROM_Conf *Conf;          //!< This is the EEPROM configuration, this parameter is mandatory
 
   //--- Interface driver call functions ---
-  void *InterfaceDevice;                  //!< This is the pointer that will be in the first parameter of all interface call functions
-  EEPROM_I2CInit_Func fnI2C_Init;         //!< This function will be called at driver initialization to configure the interface driver
-  EEPROM_I2CTransfer_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+#ifdef USE_DYNAMIC_INTERFACE
+  I2C_Interface* I2C;               //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+#else
+  I2C_Interface I2C;                //!< This is the I2C_Interface descriptor that will be used to communicate with the device
+#endif
+  uint32_t I2CclockSpeed;           //!< Clock frequency of the I2C interface in Hertz
 
   //--- Time call function ---
-  GetCurrentms_Func fnGetCurrentms;       //!< This function will be called when the driver need to get current millisecond
+  GetCurrentms_Func fnGetCurrentms; //!< This function will be called when the driver need to get current millisecond
 
   //--- Device address ---
-  uint8_t AddrA2A1A0;                     //!< Device configurable address A2, A1, and A0. You can use the macro EEPROM_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210_ where 2 is A2, 1 is A1, 0 is A0. '.' and '_' are fixed by device
+  uint8_t AddrA2A1A0;               //!< Device configurable address A2, A1, and A0. You can use the macro EEPROM_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210_ where 2 is A2, 1 is A1, 0 is A0. '.' and '_' are fixed by device
 };
 //-----------------------------------------------------------------------------
 
@@ -289,6 +255,15 @@ eERRORRESULT EEPROM_ReadData(EEPROM *pComp, uint32_t address, uint8_t* data, siz
  */
 eERRORRESULT EEPROM_WriteData(EEPROM *pComp, uint32_t address, const uint8_t* data, size_t size);
 
+
+
+/*! @brief Wait the end of write to the EEPROM device
+ * This function exists because the last page write of the EEPROM_WriteData() function to the EEPROM do not wait the end of write so a shutdown can corrupt the last page data
+ * @param[in] *pComp Is the pointed structure of the device to be used
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT EEPROM_WaitEndOfWrite(EEPROM *pComp);
+
 //********************************************************************************************************************
 
 
@@ -296,12 +271,8 @@ eERRORRESULT EEPROM_WriteData(EEPROM *pComp, uint32_t address, const uint8_t* da
 
 
 //-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------
 #endif /* EEPROM_H_INC */

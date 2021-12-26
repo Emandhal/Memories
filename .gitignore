@@ -1,8 +1,5 @@
-
-Docs/Datasheets/
-
-Docs/Generic I2C EEPROM driver library guide (Synchronous driver).docx
-
-Docs/Generic I2C EEPROM Diagrams.drawio
-
-Docs/Template driver library guide (Synchronous driver).docx
+/Docs/Datasheets/
+/Docs/Generic I2C EEPROM driver library guide (v1.0.0).pdf
+/Docs/Generic I2C EEPROM Diagrams.drawio
+/Docs/Generic I2C EEPROM driver library guide.docx
+/Docs/IMG_20211220_214305.jpg
