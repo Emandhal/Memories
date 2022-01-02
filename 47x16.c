@@ -133,7 +133,7 @@ eERRORRESULT EERAM47x16_ReadSRAMData(EERAM47x16 *pComp, uint16_t address, uint8_
 #if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  if (((size_t)address + size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
   const uint8_t ChipAddrW = ((EERAM47x16_SRAM_CHIPADDRESS_BASE | pComp->AddrA2A1) & EERAM47x16_CHIPADDRESS_MASK);
   eERRORRESULT Error;
 
@@ -196,7 +196,7 @@ eERRORRESULT EERAM47x16_ReadSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address,
 #if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  if (((size_t)address + size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
   const uint8_t ChipAddrW = ((EERAM47x16_SRAM_CHIPADDRESS_BASE | pComp->AddrA2A1) & EERAM47x16_CHIPADDRESS_MASK);
   const uint8_t ChipAddrR = (ChipAddrW | I2C_READ_ORMASK);
   I2CInterface_Packet PacketDesc;
@@ -251,7 +251,7 @@ static eERRORRESULT __EERAM47x16_WriteData(EERAM47x16 *pComp, const uint8_t chip
 #if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  if (((size_t)address + size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
   const uint8_t ChipAddr = (chipAddr | pComp->AddrA2A1) & EERAM47x16_CHIPADDRESS_MASK;
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
@@ -289,9 +289,9 @@ eERRORRESULT EERAM47x16_WriteSRAMData(EERAM47x16 *pComp, uint16_t address, const
 //=============================================================================
 // Write Control register to the EERAM47x16 device
 //=============================================================================
-eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t* data)
+eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t data)
 {
-  eERRORRESULT Error = __EERAM47x16_WriteData(pComp, EERAM47x16_REG_CHIPADDRESS_BASE, address, data, 1);
+  eERRORRESULT Error = __EERAM47x16_WriteData(pComp, EERAM47x16_REG_CHIPADDRESS_BASE, address, &data, 1);
   if (Error == ERR__I2C_NACK_DATA) Error = ERR__I2C_INVALID_COMMAND; // Here a NACK indicate that the command (aka 'data') is invalid. It cannot be anything else
   return Error;
 }
@@ -310,7 +310,7 @@ eERRORRESULT EERAM47x16_WriteSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address
 #if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  if (((size_t)address + size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x16_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
   const uint8_t ChipAddrW = ((EERAM47x16_SRAM_CHIPADDRESS_BASE | pComp->AddrA2A1) & EERAM47x16_CHIPADDRESS_MASK);
   const uint8_t ChipAddrR = (ChipAddrW | I2C_READ_ORMASK);
   uint8_t* pData = (uint8_t*)data;
@@ -332,7 +332,7 @@ eERRORRESULT EERAM47x16_WriteSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address
     return Error;
   }
 
-  //--- Read data ---
+  //--- Write data ---
   Error = __EERAM47x16_WriteAddress(pComp, ChipAddrW, address, true, I2C_WRITE_THEN_WRITE_FIRST_PART); // Start a read at address with the device
   if (Error == ERR_OK)                                                                                 // If there is no error while writing address then
   {
@@ -369,18 +369,18 @@ eERRORRESULT EERAM47x16_StoreSRAMtoEEPROM(EERAM47x16 *pComp, bool forceStore, bo
   bool Store = forceStore;
 
   //--- Check the need of store operation ---
-  if (forceStore == false)                                                            // Check register Status.AM if the store is not forced
+  if (forceStore == false)                                                           // Check register Status.AM if the store is not forced
   {
-    Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                              // Get the status register
-    if (Error != ERR_OK) return Error;                                                // If there is an error while reading register, then return the error
-    Store = ((Reg.Status & EERAM47x16_ARRAY_MODIFIED) > 0);                           // If the array has been modified, flag the store
+    Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                             // Get the status register
+    if (Error != ERR_OK) return Error;                                               // If there is an error while reading register, then return the error
+    Store = ((Reg.Status & EERAM47x16_ARRAY_MODIFIED) > 0);                          // If the array has been modified, flag the store
   }
   //--- Send the store operation if necessary or asked ---
   if (Store)
   {
     uint8_t Data = EERAM47x16_STORE_COMMAND;
-    Error = EERAM47x16_WriteRegister(pComp, EERAM47x16_COMMAND_REGISTER_ADDR, &Data); // Execute a store
-    if (Error != ERR_OK) return Error;                                                // If there is an error while reading register, then return the error
+    Error = EERAM47x16_WriteRegister(pComp, EERAM47x16_COMMAND_REGISTER_ADDR, Data); // Execute a store
+    if (Error != ERR_OK) return Error;                                               // If there is an error while reading register, then return the error
     //--- Wait the end of store if asked ---
     if (waitEndOfStore)
     {
@@ -413,8 +413,8 @@ eERRORRESULT EERAM47x16_RecallEEPROMtoSRAM(EERAM47x16 *pComp, bool waitEndOfReca
 
   //--- Send a recall operation ---
   uint8_t Data = EERAM47x16_RECALL_COMMAND;
-  Error = EERAM47x16_WriteRegister(pComp, EERAM47x16_COMMAND_REGISTER_ADDR, &Data); // Execute a recall
-  if (Error != ERR_OK) return Error;                                                // If there is an error while reading register, then return the error
+  Error = EERAM47x16_WriteRegister(pComp, EERAM47x16_COMMAND_REGISTER_ADDR, Data); // Execute a recall
+  if (Error != ERR_OK) return Error;                                               // If there is an error while reading register, then return the error
   //--- Wait the end of recall if asked ---
   if (waitEndOfRecall)
   {
@@ -442,11 +442,11 @@ eERRORRESULT EERAM47x16_ActivateAutoStore(EERAM47x16 *pComp)
   EERAM47x16_Status_Register Reg;
 
   //--- Get the status register ---
-  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                  // Get the status register
-  if (Error != ERR_OK) return Error;                                                    // If there is an error while sending data to I2C then stop the transfer
+  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                 // Get the status register
+  if (Error != ERR_OK) return Error;                                                   // If there is an error while sending data to I2C then stop the transfer
   //--- Set the status register ---
-  Reg.Status |= EERAM47x16_ASE_ENABLE;                                                  // Set the Auto-Store flag
-  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, &Reg.Status); // Save the status register
+  Reg.Status |= EERAM47x16_ASE_ENABLE;                                                 // Set the Auto-Store flag
+  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, Reg.Status); // Save the status register
 }
 
 
@@ -460,11 +460,11 @@ eERRORRESULT EERAM47x16_DeactivateAutoStore(EERAM47x16 *pComp)
   EERAM47x16_Status_Register Reg;
 
   //--- Get the status register ---
-  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                  // Get the status register
-  if (Error != ERR_OK) return Error;                                                    // If there is an error while sending data to I2C then stop the transfer
+  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                 // Get the status register
+  if (Error != ERR_OK) return Error;                                                   // If there is an error while sending data to I2C then stop the transfer
   //--- Set the status register ---
-  Reg.Status &= ~EERAM47x16_ASE_ENABLE;                                                 // Unset the Auto-Store flag
-  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, &Reg.Status); // Save the status register
+  Reg.Status &= ~EERAM47x16_ASE_ENABLE;                                                // Unset the Auto-Store flag
+  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, Reg.Status); // Save the status register
 }
 
 
@@ -478,11 +478,11 @@ eERRORRESULT EERAM47x16_SetBlockWriteProtect(EERAM47x16 *pComp, eEERAM47x16_Bloc
   EERAM47x16_Status_Register Reg;
 
   //--- Get the status register ---
-  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                  // Get the status register
-  if (Error != ERR_OK) return Error;                                                    // If there is an error while sending data to I2C then stop the transfer
+  Error = EERAM47x16_ReadRegister(pComp, &Reg.Status);                                 // Get the status register
+  if (Error != ERR_OK) return Error;                                                   // If there is an error while sending data to I2C then stop the transfer
   //--- Set the status register ---
-  Reg.Bits.BP = (uint8_t)blockProtect;                                                  // Set the block protect
-  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, &Reg.Status); // Save the status register
+  Reg.Bits.BP = (uint8_t)blockProtect;                                                 // Set the block protect
+  return EERAM47x16_WriteRegister(pComp, EERAM47x16_STATUS_REGISTER_ADDR, Reg.Status); // Save the status register
 }
 
 
@@ -490,11 +490,7 @@ eERRORRESULT EERAM47x16_SetBlockWriteProtect(EERAM47x16 *pComp, eEERAM47x16_Bloc
 
 
 //-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------

@@ -285,10 +285,10 @@ eERRORRESULT EERAM47x16_WriteSRAMData(EERAM47x16 *pComp, uint16_t address, const
  * Use the address EERAM47x16_COMMAND_REGISTER_ADDR (0x55) to write to the command register
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @param[in] address Is the address where data will be stored
- * @param[in] *data Is the data array to store
+ * @param[in] data Is the data array to store
  * @return Returns an #eERRORRESULT value enum
  */
-eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t* data);
+eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t data);
 
 
 /*! @brief Write SRAM data with DMA to the EERAM47x16 device
