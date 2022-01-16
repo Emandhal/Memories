@@ -1,7 +1,8 @@
 # Drivers
+Drivers in this repository are fully hardware independant **Drivers** primarily aimed at embedded world.
+All memories features are supported
 ## I2C memories
 ### I2C EEPROM drivers
-Drivers in this repository are fully hardware independant **Drivers** primarily aimed at embedded world
 Here are drivers of:
 * Generic I2C EEPROM compatible with:
   * 47L04 and 47C04
@@ -27,6 +28,10 @@ Here are drivers of:
 ### SPI EERAM drivers
 * 48L512
 * 48LM01
+
+### SPI SRAM drivers
+* 23A640/23K640, 23A256/23K256, 23A512/23LC512, 23A1024/23LC1024
+* 23LCV512, 23LCV1024
 
 # Presentation
 This driver only takes care of configuration and check of the internal registers and the formatting of the communication with the device. That means it does not directly take care of the physical communication, there is functions interfaces to do that.
