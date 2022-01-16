@@ -589,7 +589,7 @@ eERRORRESULT EERAM48LM01_SetStatus(EERAM48LM01 *pComp, const EERAM48LM01_StatusR
 #endif
   uint8_t RegData[2] = { EERAM48LM01_WRSR, status.Status };
 
-  //--- Read data from SPI ---
+  //--- Write data to SPI ---
   pComp->InternalConfig &= EERAM48LM01_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
   SPIInterface_Packet PacketDesc =
   {
