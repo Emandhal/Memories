@@ -10,7 +10,7 @@
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020-2021 Fabien MAILLY
+ * Copyright (c) 2020-2022 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -162,18 +162,18 @@ typedef struct
   }
 
 //! Prepare I2C packet description to transmit bytes
-#define I2C_INTERFACE_TX_DATA_DESC(chipAddr,start,txData,size,stop,type)                                                    \
-  {                                                                                                                         \
-    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(type), \
-    I2C_MEMBER(Start       ) start,                                                                                         \
-    I2C_MEMBER(ChipAddr    ) chipAddr,                                                                                      \
-    I2C_MEMBER(pBuffer     ) txData,                                                                                        \
-    I2C_MEMBER(BufferSize  ) size,                                                                                          \
-    I2C_MEMBER(Stop        ) stop,                                                                                          \
+#define I2C_INTERFACE_TX_DATA_DESC(chipAddr,start,txData,size,stop,transferType)                                                    \
+  {                                                                                                                                 \
+    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
+    I2C_MEMBER(Start       ) start,                                                                                                 \
+    I2C_MEMBER(ChipAddr    ) chipAddr,                                                                                              \
+    I2C_MEMBER(pBuffer     ) txData,                                                                                                \
+    I2C_MEMBER(BufferSize  ) size,                                                                                                  \
+    I2C_MEMBER(Stop        ) stop,                                                                                                  \
   }
 
 //! Prepare I2C packet description to transmit bytes
-#define I2C_INTERFACE_RX_DATA_DESC(chipAddr,start,rxData,size,stop,type)                                                            \
+#define I2C_INTERFACE_RX_DATA_DESC(chipAddr,start,rxData,size,stop,transferType)                                                    \
   {                                                                                                                                 \
     I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
     I2C_MEMBER(Start       ) start,                                                                                                 \
