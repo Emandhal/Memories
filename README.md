@@ -1,9 +1,9 @@
 # Drivers
 Drivers in this repository are fully hardware independant **Drivers** primarily aimed at embedded world.
-All memories features are supported
+All memories features are supported.
+Here are drivers of:
 ## I2C memories
 ### I2C EEPROM drivers
-Here are drivers of:
 * Generic I2C EEPROM compatible with:
   * 47L04 and 47C04
   * 47L16 and 47C16

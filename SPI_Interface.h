@@ -128,6 +128,19 @@ typedef struct
 // Fill packet description helpers
 //********************************************************************************************************************
 
+//! Prepare SPI packet description to check the DMA status
+#define SPI_INTERFACE_CHECK_DMA_DESC(transactionNumber)                                     \
+{                                                                                           \
+  SPI_MEMBER(Config.Value) SPI_USE_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) \
+                         | SPI_TRANSACTION_NUMBER_SET(transactionNumber),                   \
+  SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,                                            \
+  SPI_MEMBER(DummyByte   ) 0x00,                                                            \
+  SPI_MEMBER(TxData      ) NULL,                                                            \
+  SPI_MEMBER(RxData      ) NULL,                                                            \
+  SPI_MEMBER(DataSize    ) 0,                                                               \
+  SPI_MEMBER(Terminate   ) true,                                                            \
+}
+
 //! Prepare SPI packet description to transmit bytes
 #define SPI_INTERFACE_TX_DATA_DESC(txData,size,terminate)                                     \
   {                                                                                           \
