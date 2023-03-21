@@ -1,11 +1,10 @@
-/*******************************************************************************
+/*!*****************************************************************************
  * @file    48LM01.c
  * @author  Fabien 'Emandhal' MAILLY
  * @version 1.0.0
  * @date    26/12/2021
  * @brief   EERAM48LM01 driver
- *
- * SPI-Compatible 1-Mbit SPI Serial EERAM
+ * @details SPI-Compatible 1-Mbit SPI Serial EERAM
  * Follow datasheet DS20006008C Rev.C (Oct 2019)
  ******************************************************************************/
 

@@ -1,11 +1,10 @@
-/*******************************************************************************
+/*!*****************************************************************************
  * @file    EEPROM.h
  * @author  FMA
  * @version 1.1.0
  * @date    30/10/2021
  * @brief   Generic EEPROM driver
- *
- * Generic I2C-Compatible (2-wire) Serial EEPROM
+ * @details Generic I2C-Compatible (2-wire) Serial EEPROM
  * It can work with every memory with an address 1010xxx_ compatibility
  ******************************************************************************/
  /* @page License

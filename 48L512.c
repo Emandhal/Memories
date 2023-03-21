@@ -1,11 +1,10 @@
-/*******************************************************************************
+/*!*****************************************************************************
  * @file    48L512.c
  * @author  Fabien 'Emandhal' MAILLY
  * @version 1.0.0
  * @date    26/12/2021
  * @brief   EERAM48L512 driver
- *
- * SPI-Compatible 512-kbit SPI Serial EERAM
+ * @details SPI-Compatible 512-kbit SPI Serial EERAM
  * Follow datasheet DS20006008C Rev.C (Oct 2019)
  ******************************************************************************/
 

@@ -1,11 +1,10 @@
-/*******************************************************************************
+/*!*****************************************************************************
  * @file    47x04.h
  * @author  Fabien 'Emandhal' MAILLY
  * @version 1.1.0
  * @date    23/10/2021
  * @brief   EERAM47x04 driver
- *
- * I2C-Compatible (2-wire) 4-Kbit (512B x 8) Serial EERAM
+ * @details I2C-Compatible (2-wire) 4-Kbit (512B x 8) Serial EERAM
  * Follow datasheet 47L04/47C04/47L16/47C16 Rev.C (Jun 2016)
  ******************************************************************************/
  /* @page License

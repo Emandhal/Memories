@@ -1,12 +1,11 @@
-/*******************************************************************************
+/*!*****************************************************************************
  * @file    SPI_Interface.h
  * @author  Fabien 'Emandhal' MAILLY
  * @version 1.0.0
  * @date    02/10/2021
  * @brief   SPI interface for driver
- *
- * This SPI interface definitions for all the https://github.com/Emandhal drivers
- * and developments
+ * @details This SPI interface definitions for all the https://github.com/Emandhal
+ * drivers and developments
  ******************************************************************************/
  /* @page License
  *
