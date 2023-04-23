@@ -98,8 +98,11 @@ eERRORRESULT Init_EERAM48L512(EERAM48L512 *pComp)
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI->fnSPI_Init == NULL) return ERR__PARAMETER_ERROR;
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
+  if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
 #endif
   pComp->InternalConfig = 0;
 
@@ -150,7 +153,10 @@ eERRORRESULT __EERAM48L512_WriteAddress(EERAM48L512 *pComp, const uint8_t opCode
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
 
@@ -185,7 +191,10 @@ eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, ui
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -288,7 +297,10 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -346,7 +358,10 @@ eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, u
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -453,7 +468,10 @@ eERRORRESULT EERAM48L512_WriteCommand(EERAM48L512 *pComp, const eEERAM48L512_OPc
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   uint8_t RegData = (uint8_t)command;
@@ -484,7 +502,10 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -543,7 +564,10 @@ eERRORRESULT EERAM48L512_GetStatus(EERAM48L512 *pComp, EERAM48L512_StatusRegiste
   if ((pComp == NULL) || (status == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   uint8_t RegData[2] = { EERAM48L512_RDSR, 0x00 };
@@ -577,7 +601,10 @@ eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusR
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   uint8_t RegData[2] = { EERAM48L512_WRSR, status.Status };

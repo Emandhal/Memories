@@ -116,8 +116,11 @@ eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pCon
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI->fnSPI_Init == NULL) return ERR__PARAMETER_ERROR;
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
+  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   pComp->InternalConfig = SRAM23LCxxx_IO_MODE_SET(SRAM23LCxxx_SPI);
   eERRORRESULT Error;
@@ -166,7 +169,10 @@ eERRORRESULT __SRAM23LCxxx_WriteAddress(SRAM23LCxxx *pComp, const uint8_t instru
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
 
@@ -203,7 +209,10 @@ eERRORRESULT __SRAM23LCxxx_ReadData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Instr
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
@@ -290,7 +299,10 @@ eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Inst
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
@@ -364,7 +376,10 @@ eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   uint8_t RegData = (uint8_t)instruction;
@@ -424,8 +439,11 @@ eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmode
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI->fnSPI_Init == NULL) return ERR__PARAMETER_ERROR;
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+# endif
+  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
 

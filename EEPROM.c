@@ -120,7 +120,10 @@ eERRORRESULT Init_EEPROM(EEPROM *pComp)
   if ((pComp == NULL) || (pComp->Conf == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
@@ -143,7 +146,10 @@ bool EEPROM_IsReady(EEPROM *pComp)
   if ((pComp == NULL) || (pComp->Conf == NULL)) return false;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return false;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return false;
 #endif
   I2CInterface_Packet PacketDesc =
@@ -170,7 +176,10 @@ eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const eI2C_T
   if ((pComp == NULL) || (pComp->Conf == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
@@ -209,7 +218,10 @@ eERRORRESULT __EEPROM_ReadPage(EEPROM *pComp, uint32_t address, uint8_t* data, s
   if ((pComp == NULL) || (pComp->Conf == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > pComp->Conf->PageSize) return ERR__OUT_OF_RANGE;
@@ -283,7 +295,10 @@ eERRORRESULT __EEPROM_WritePage(EEPROM *pComp, uint32_t address, const uint8_t* 
   if ((pComp == NULL) || (pComp->Conf == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > pComp->Conf->PageSize) return ERR__OUT_OF_RANGE;

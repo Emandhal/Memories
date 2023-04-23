@@ -52,7 +52,10 @@ eERRORRESULT Init_AT24MAC602(AT24MAC602 *pComp)
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
@@ -75,7 +78,10 @@ bool AT24MAC602_IsReady(AT24MAC602 *pComp)
   if (pComp == NULL) return false;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return false;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return false;
 #endif
   I2CInterface_Packet PacketDesc =
@@ -102,7 +108,10 @@ static eERRORRESULT __AT24MAC602_WriteAddress(AT24MAC602 *pComp, const uint8_t c
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
@@ -135,7 +144,10 @@ eERRORRESULT __AT24MAC602_ReadPage(AT24MAC602 *pComp, uint8_t chipAddr, uint8_t 
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > AT24MAC602_PAGE_SIZE) return ERR__OUT_OF_RANGE;
@@ -208,7 +220,10 @@ eERRORRESULT __AT24MAC602_WritePage(AT24MAC602 *pComp, uint8_t chipAddr, uint8_t
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > AT24MAC602_PAGE_SIZE) return ERR__OUT_OF_RANGE;

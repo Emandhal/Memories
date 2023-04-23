@@ -39,7 +39,10 @@ eERRORRESULT Init_EERAM47x04(EERAM47x04 *pComp)
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
 #endif
   eERRORRESULT Error;
@@ -63,7 +66,10 @@ bool EERAM47x04_IsReady(EERAM47x04 *pComp)
   if (pComp == NULL) return false;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return false;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return false;
 #endif
   I2CInterface_Packet PacketDesc =
@@ -90,7 +96,10 @@ static eERRORRESULT __EERAM47x04_WriteAddress(EERAM47x04 *pComp, const uint8_t c
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   const uint8_t AddrBytes = ((chipAddr & EERAM47x04_CHIPADDRESS_BASE_MASK) == EERAM47x04_SRAM_CHIPADDRESS_BASE ? 2 : 1); // If the base chip address is the SRAM then the address is 2 bytes else 1 byte (control registers)
@@ -129,7 +138,10 @@ eERRORRESULT EERAM47x04_ReadSRAMData(EERAM47x04 *pComp, uint16_t address, uint8_
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -165,7 +177,10 @@ eERRORRESULT EERAM47x04_ReadRegister(EERAM47x04 *pComp, uint8_t* data)
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   //--- Read data from I2C ---
@@ -192,7 +207,10 @@ eERRORRESULT EERAM47x04_ReadSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address,
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -247,7 +265,10 @@ static eERRORRESULT __EERAM47x04_WriteData(EERAM47x04 *pComp, const uint8_t chip
   if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
@@ -306,7 +327,10 @@ eERRORRESULT EERAM47x04_WriteSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address
   if (pComp == NULL) return ERR__PARAMETER_ERROR;
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
-#if defined(CHECK_NULL_PARAM) && defined(USE_DYNAMIC_INTERFACE)
+#if defined(CHECK_NULL_PARAM)
+# if defined(USE_DYNAMIC_INTERFACE)
+  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+# endif
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
