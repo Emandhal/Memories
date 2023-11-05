@@ -31,63 +31,64 @@ extern "C" {
 
 //=== AT24CXX(A) devices ======================================================
 // AT24C01A EEPROM configurations
-const EEPROM_Conf AT24C01A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .ArrayByteSize =  16/*Pages*/ * 8, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf AT24C01A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .ArrayByteSize =  16/*Pages*/ * 8, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf AT24C01A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .OffsetAddress = 0, .TotalByteSize =  16/*Pages*/ * 8, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf AT24C01A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .OffsetAddress = 0, .TotalByteSize =  16/*Pages*/ * 8, .MaxI2CclockSpeed = 400000, };
 
 // AT24C02 EEPROM configurations
-const EEPROM_Conf AT24C02_1V8_Conf  = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .ArrayByteSize =  32/*Pages*/ * 8, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf AT24C02_Conf      = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .ArrayByteSize =  32/*Pages*/ * 8, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf AT24C02_1V8_Conf  = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .OffsetAddress = 0, .TotalByteSize =  32/*Pages*/ * 8, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf AT24C02_Conf      = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0   , .AddressType = EEPROM_ADDRESS_1Byte            , .PageWriteTime = 5, .PageSize =  8, .OffsetAddress = 0, .TotalByteSize =  32/*Pages*/ * 8, .MaxI2CclockSpeed = 400000, };
 
 // AT24C04 EEPROM configurations
-const EEPROM_Conf AT24C04_1V8_Conf  = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1     , .AddressType = EEPROM_ADDRESS_1Byte_plus_A0    , .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize =  32/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf AT24C04_Conf      = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1     , .AddressType = EEPROM_ADDRESS_1Byte_plus_A0    , .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize =  32/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf AT24C04_1V8_Conf  = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1     , .AddressType = EEPROM_ADDRESS_1Byte_plus_A0    , .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize =  32/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf AT24C04_Conf      = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1     , .AddressType = EEPROM_ADDRESS_1Byte_plus_A0    , .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize =  32/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
 
 // AT24C08A EEPROM configurations
-const EEPROM_Conf AT24C08A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2       , .AddressType = EEPROM_ADDRESS_1Byte_plus_A1A0  , .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize =  64/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf AT24C08A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2       , .AddressType = EEPROM_ADDRESS_1Byte_plus_A1A0  , .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize =  64/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf AT24C08A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2       , .AddressType = EEPROM_ADDRESS_1Byte_plus_A1A0  , .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize =  64/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf AT24C08A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2       , .AddressType = EEPROM_ADDRESS_1Byte_plus_A1A0  , .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize =  64/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
 
 // AT24C16A EEPROM configurations
-const EEPROM_Conf AT24C16A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_NO_CHIP_ADDRESS_SELECT, .AddressType = EEPROM_ADDRESS_1Byte_plus_A2A1A0, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 128/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf AT24C16A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_NO_CHIP_ADDRESS_SELECT, .AddressType = EEPROM_ADDRESS_1Byte_plus_A2A1A0, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 128/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf AT24C16A_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_NO_CHIP_ADDRESS_SELECT, .AddressType = EEPROM_ADDRESS_1Byte_plus_A2A1A0, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 128/*Pages*/ *16, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf AT24C16A_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_NO_CHIP_ADDRESS_SELECT, .AddressType = EEPROM_ADDRESS_1Byte_plus_A2A1A0, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 128/*Pages*/ *16, .MaxI2CclockSpeed = 400000, };
 
 
 //=== 24XX256 devices =========================================================
 // 24AA256 EEPROM configurations
-const EEPROM_Conf _24AA256_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .ArrayByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 100000, };
-const EEPROM_Conf _24AA256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .ArrayByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf _24AA256_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .OffsetAddress = 0, .TotalByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 100000, };
+const EEPROM_Conf _24AA256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .OffsetAddress = 0, .TotalByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 400000, };
 
 // 24LC256 EEPROM configurations
-const EEPROM_Conf _24LC256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .ArrayByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 400000, };
+const EEPROM_Conf _24LC256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .OffsetAddress = 0, .TotalByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 400000, };
 
 // 24FC256 EEPROM configurations
-const EEPROM_Conf _24FC256_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .ArrayByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed =  400000, };
-const EEPROM_Conf _24FC256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .ArrayByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf _24FC256_1V8_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .OffsetAddress = 0, .TotalByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed =  400000, };
+const EEPROM_Conf _24FC256_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 5, .PageSize = 64, .OffsetAddress = 0, .TotalByteSize = 512/*Pages*/ *64, .MaxI2CclockSpeed = 1000000, };
 
+
+#if !defined(USE_EEPROM_GENERICNESS)
 
 //=== AT24CM02 devices =========================================================
-const EEPROM_Conf AT24CM02_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2, .AddressType = EEPROM_ADDRESS_2Byte_plus_A1A0, .PageWriteTime = 10, .PageSize = 256, .ArrayByteSize = 1024/*Pages*/ *256, .MaxI2CclockSpeed =  400000, };
-const EEPROM_Conf AT24CM02_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2, .AddressType = EEPROM_ADDRESS_2Byte_plus_A1A0, .PageWriteTime = 10, .PageSize = 256, .ArrayByteSize = 1024/*Pages*/ *256, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf AT24CM02_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2, .AddressType = EEPROM_ADDRESS_2Byte_plus_A1A0, .PageWriteTime = 10, .PageSize = 256, .OffsetAddress = 0, .TotalByteSize = 1024/*Pages*/ *256, .MaxI2CclockSpeed =  400000, };
+const EEPROM_Conf AT24CM02_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2, .AddressType = EEPROM_ADDRESS_2Byte_plus_A1A0, .PageWriteTime = 10, .PageSize = 256, .OffsetAddress = 0, .TotalByteSize = 1024/*Pages*/ *256, .MaxI2CclockSpeed = 1000000, };
 
 
 //=== AT24MACX02 devices =========================================================
 // AT24MAC402 EEPROM configurations
-const EEPROM_Conf AT24MAC402_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed =  400000, };
-const EEPROM_Conf AT24MAC402_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf AT24MAC402_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed =  400000, };
+const EEPROM_Conf AT24MAC402_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed = 1000000, };
 
 // AT24MAC602 EEPROM configurations
-const EEPROM_Conf AT24MAC602_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed =  400000, };
-const EEPROM_Conf AT24MAC602_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .ArrayByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf AT24MAC602_1V7_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed =  400000, };
+const EEPROM_Conf AT24MAC602_Conf     = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1A0, .AddressType = EEPROM_ADDRESS_1Byte, .PageWriteTime = 5, .PageSize = 16, .OffsetAddress = 0, .TotalByteSize = 16/*Pages*/ *16, .MaxI2CclockSpeed = 1000000, };
 
 
 //=== 47(L/C)04 devices =========================================================
-const EEPROM_Conf EERAM47L04_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 8, .PageSize = 512, .ArrayByteSize = 512, .MaxI2CclockSpeed = 1000000, };
-const EEPROM_Conf EERAM47C04_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 8, .PageSize = 512, .ArrayByteSize = 512, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf EERAM47L04_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 8, .PageSize = 512, .OffsetAddress = 0, .TotalByteSize = 512, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf EERAM47C04_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 8, .PageSize = 512, .OffsetAddress = 0, .TotalByteSize = 512, .MaxI2CclockSpeed = 1000000, };
 
 
 //=== 47(L/C)16 devices =========================================================
-const EEPROM_Conf EERAM47L16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 25, .PageSize = 2048, .ArrayByteSize = 2048, .MaxI2CclockSpeed = 1000000, };
-const EEPROM_Conf EERAM47C16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 25, .PageSize = 2048, .ArrayByteSize = 2048, .MaxI2CclockSpeed = 1000000, };
-
+const EEPROM_Conf EERAM47L16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 25, .PageSize = 2048, .OffsetAddress = 0, .TotalByteSize = 2048, .MaxI2CclockSpeed = 1000000, };
+const EEPROM_Conf EERAM47C16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 25, .PageSize = 2048, .OffsetAddress = 0, .TotalByteSize = 2048, .MaxI2CclockSpeed = 1000000, };
 
 #endif // !defined(USE_EEPROM_GENERICNESS)
 
@@ -185,6 +186,7 @@ eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const eI2C_T
   const EEPROM_Conf* const pConf = pComp->Conf;
   const uint8_t AddrBytes  =  (pConf->AddressType & (uint8_t)EEPROM_ADDRESS_Bytes_MASK);
   const uint8_t AddrTypeAx = ((pConf->AddressType & (uint8_t)EEPROM_ADDRESS_plus_Ax_MASK) >> 4);
+  address += pConf->OffsetAddress;
 
   //--- Create address ---
   uint8_t Address[EEPROM_ADDRESS_4Bytes];
@@ -247,7 +249,7 @@ eERRORRESULT EEPROM_ReadData(EEPROM *pComp, uint32_t address, uint8_t* data, siz
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   const EEPROM_Conf* const pConf = pComp->Conf;
-  if ((address + size) > pConf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + size) > pConf->TotalByteSize) return ERR__OUT_OF_MEMORY;
   eERRORRESULT Error;
   size_t PageRemData;
 
@@ -321,7 +323,7 @@ eERRORRESULT EEPROM_WriteData(EEPROM *pComp, uint32_t address, const uint8_t* da
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   const EEPROM_Conf* const pConf = pComp->Conf;
-  if ((address + size) > pConf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + size) > pConf->TotalByteSize) return ERR__OUT_OF_MEMORY;
   eERRORRESULT Error;
   size_t PageRemData;
 
