@@ -89,6 +89,7 @@ const EEPROM_Conf EERAM47L16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_
 const EEPROM_Conf EERAM47C16_Conf = { .ChipAddress = 0xA0, .ChipSelect = EEPROM_CHIP_ADDRESS_A2A1, .AddressType = EEPROM_ADDRESS_2Bytes, .PageWriteTime = 25, .PageSize = 2048, .ArrayByteSize = 2048, .MaxI2CclockSpeed = 1000000, };
 
 
+#endif // !defined(USE_EEPROM_GENERICNESS)
 
 //**********************************************************************************************************************************************************
 
