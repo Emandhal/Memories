@@ -59,12 +59,8 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 
-
-
 // Limits definitions
 #define EERAM48L512_SPICLOCK_MAX  ( 66000000u ) //!< Max SPI clock frequency
-
-
 
 // Device definitions
 #define EERAM48L512_PAGE_SIZE          ( 64 ) //!< The EERAM48L512 is 64 bytes page size (for secured transfer)
@@ -112,6 +108,8 @@ typedef enum
 } eEERAM48L512_OPcodes;
 
 #define EERAM48L512_IS_NV_USER_SPACE(opCode)  ( ((uint8_t)(opCode) & 0xC0) == 0xC0 )
+
+//-----------------------------------------------------------------------------
 
 
 
@@ -191,9 +189,10 @@ typedef enum
 
 //-----------------------------------------------------------------------------
 
-
 typedef struct EERAM48L512 EERAM48L512; //! Typedef of EERAM48L512 device object structure
 typedef uint8_t TEERAM48L512DriverInternal; //! Alias for Driver Internal data flags
+
+//-----------------------------------------------------------------------------
 
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
@@ -201,7 +200,6 @@ typedef uint8_t TEERAM48L512DriverInternal; //! Alias for Driver Internal data f
  * @return Returns the current millisecond of the system
  */
 typedef uint32_t (*GetCurrentms_Func)(void);
-
 
 #ifdef USE_EXTERNAL_CRC16
 /*! @brief Function that compute CRC16-IBM3740 for the driver
@@ -214,7 +212,7 @@ typedef uint32_t (*GetCurrentms_Func)(void);
 typedef uint16_t (*ComputeCRC16_Func)(uint16_t* pCRC, const uint8_t* data, size_t size);
 #endif
 
-
+//-----------------------------------------------------------------------------
 
 //! EERAM48L512 device object structure
 struct EERAM48L512
@@ -242,9 +240,6 @@ struct EERAM48L512
 //-----------------------------------------------------------------------------
 
 
-
-
-
 /*! @brief EERAM48L512 initialization
  *
  * This function initializes the EERAM48L512 driver and call the initialization of the interface driver (SPI).
@@ -255,7 +250,6 @@ struct EERAM48L512
 eERRORRESULT Init_EERAM48L512(EERAM48L512 *pComp);
 
 //********************************************************************************************************************
-
 
 
 /*! @brief Read SRAM data from the EERAM48L512 device
@@ -269,7 +263,6 @@ eERRORRESULT Init_EERAM48L512(EERAM48L512 *pComp);
  */
 eERRORRESULT EERAM48L512_ReadSRAMData(EERAM48L512 *pComp, uint16_t address, uint8_t* data, size_t size);
 
-
 /*! @brief Secure read SRAM data to the EERAM48L512 device
  *
  * This function reads data from the SRAM area of a EERAM48L512 device with a CRC check
@@ -282,7 +275,6 @@ eERRORRESULT EERAM48L512_ReadSRAMData(EERAM48L512 *pComp, uint16_t address, uint
  */
 eERRORRESULT EERAM48L512_ReadSecure(EERAM48L512 *pComp, uint16_t address, uint8_t* data, size_t size);
 
-
 /*! @brief Write NonVolatile User Space data to the EERAM48L512 device
  *
  * This function reads data from the NonVolatile User Space area of a EERAM48L512 device
@@ -293,10 +285,9 @@ eERRORRESULT EERAM48L512_ReadSecure(EERAM48L512 *pComp, uint16_t address, uint8_
  */
 eERRORRESULT EERAM48L512_ReadNVUSData(EERAM48L512 *pComp, uint8_t* data);
 
-
 /*! @brief Read SRAM data with DMA from the EERAM48L512 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM48L512_ReadSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -310,7 +301,6 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
 //********************************************************************************************************************
 
 
-
 /*! @brief Write SRAM data to the EERAM48L512 device
  *
  * This function writes data to the SRAM area of a EERAM48L512 device
@@ -321,7 +311,6 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48L512_WriteSRAMData(EERAM48L512 *pComp, uint16_t address, const uint8_t* data, size_t size);
-
 
 /*! @brief Secure write SRAM data to the EERAM48L512 device
  *
@@ -335,7 +324,6 @@ eERRORRESULT EERAM48L512_WriteSRAMData(EERAM48L512 *pComp, uint16_t address, con
  */
 eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const uint8_t* data, size_t size);
 
-
 /*! @brief Write NonVolatile User Space data to the EERAM48L512 device
  *
  * This function writes data to the NonVolatile User Space area of a EERAM48L512 device
@@ -346,7 +334,6 @@ eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const
  */
 eERRORRESULT EERAM48L512_WriteNVUSData(EERAM48L512 *pComp, const uint8_t* data);
 
-
 /*! @brief Write a command to the EERAM48L512 device
  *
  * This function asserts the device, write the OP code and deasserts the device
@@ -356,10 +343,9 @@ eERRORRESULT EERAM48L512_WriteNVUSData(EERAM48L512 *pComp, const uint8_t* data);
  */
 eERRORRESULT EERAM48L512_WriteCommand(EERAM48L512 *pComp, const eEERAM48L512_OPcodes command);
 
-
 /*! @brief Write SRAM data with DMA to the EERAM48L512 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM48L512_WriteSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -373,7 +359,6 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
 //********************************************************************************************************************
 
 
-
 /*! @brief Get the status of the EERAM48L512 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -381,7 +366,6 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48L512_GetStatus(EERAM48L512 *pComp, EERAM48L512_StatusRegister* status);
-
 
 /*! @brief Set the status of the EERAM48L512 device
  *
@@ -394,7 +378,6 @@ eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusR
 //********************************************************************************************************************
 
 
-
 /*! @brief Store all the SRAM to the EEPROM of the EERAM48L512 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -402,7 +385,6 @@ eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusR
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfStore);
-
 
 /*! @brief Recall all data from EEPROM to SRAM of the EERAM48L512 device
  *
@@ -412,14 +394,12 @@ eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfSto
  */
 eERRORRESULT EERAM48L512_RecallEEPROMtoSRAM(EERAM48L512 *pComp, bool waitEndOfRecall);
 
-
 /*! @brief Activate the Auto-Store of the EERAM48L512 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48L512_ActivateAutoStore(EERAM48L512 *pComp);
-
 
 /*! @brief Deactivate the Auto-Store of the EERAM48L512 device
  *
@@ -428,7 +408,6 @@ eERRORRESULT EERAM48L512_ActivateAutoStore(EERAM48L512 *pComp);
  */
 eERRORRESULT EERAM48L512_DeactivateAutoStore(EERAM48L512 *pComp);
 
-
 /*! @brief Set block write protect of the EERAM48L512 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -436,7 +415,6 @@ eERRORRESULT EERAM48L512_DeactivateAutoStore(EERAM48L512 *pComp);
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48L512_SetBlockWriteProtect(EERAM48L512 *pComp, eEERAM48L512_BlockProtect blockProtect);
-
 
 /*! @brief Set write enable of the EERAM48L512 device
  *
@@ -450,7 +428,6 @@ inline eERRORRESULT EERAM48L512_SetWriteEnable(EERAM48L512 *pComp)
   return Error;
 }
 
-
 /*! @brief Set write disable of the EERAM48L512 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -461,7 +438,6 @@ inline eERRORRESULT EERAM48L512_SetWriteDisable(EERAM48L512 *pComp)
   return EERAM48L512_WriteCommand(pComp, EERAM48L512_WRDI); // Send OP code of write disable
 }
 
-
 /*! @brief Put the EERAM48L512 device in hibernation
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -471,13 +447,6 @@ inline eERRORRESULT EERAM48L512_Hibernate(EERAM48L512 *pComp)
 {
   return EERAM48L512_WriteCommand(pComp, EERAM48L512_HBRNT); // Send OP code of hibernation
 }
-
-//********************************************************************************************************************
-
-
-
-
-
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus
 }

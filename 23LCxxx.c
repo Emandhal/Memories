@@ -131,24 +131,24 @@ eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pCon
     if ((pComp->Conf->ModeSet & SRAM23LCxxx_SDI) > 0)                 // Device supports SDI?
     {
       Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, DUAL_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SDI mode
-      if (Error != ERR_OK) return Error;                              // If there is an error while calling fnSPI_Init() then return the error
+      if (Error != ERR_NONE) return Error;                            // If there is an error while calling fnSPI_Init() then return the error
       Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO); // Return to SPI mode
-      if (Error != ERR_OK) return Error;                              // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+      if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     }
     if ((pComp->Conf->ModeSet & SRAM23LCxxx_SQI) > 0)                 // Device supports SQI?
     {
       Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, QUAD_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SQI mode
-      if (Error != ERR_OK) return Error;                              // If there is an error while calling fnSPI_Init() then return the error
+      if (Error != ERR_NONE) return Error;                            // If there is an error while calling fnSPI_Init() then return the error
       Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO); // Return to SPI mode
-      if (Error != ERR_OK) return Error;                              // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+      if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     }
-    Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SDI mode
-    if (Error != ERR_OK) return Error;                                // If there is an error while calling fnSPI_Init() then return the error
+    Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SDI mode
+    if (Error != ERR_NONE) return Error;                              // If there is an error while calling fnSPI_Init() then return the error
   }
 
   //--- Configure SPI interface ---
   Error = SRAM23LCxxx_SetIOmode(pComp, pConf->IOmode);
-  if (Error != ERR_OK) return Error;                                  // If there is an error while calling SRAM23LCxxx_SetIOmode() then return the error
+  if (Error != ERR_NONE) return Error;                                // If there is an error while calling SRAM23LCxxx_SetIOmode() then return the error
 
   //--- Configure memory mode ---
   return SRAM23LCxxx_SetOperationMode(pComp, pConf->OperationMode, pConf->DisableHold);
@@ -183,7 +183,7 @@ eERRORRESULT __SRAM23LCxxx_WriteAddress(SRAM23LCxxx *pComp, const uint8_t instru
   //--- Send the address ---
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &Address[0],
@@ -219,7 +219,7 @@ eERRORRESULT __SRAM23LCxxx_ReadData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Instr
   const eSRAM23LCxxx_IOmodes IOmode = SRAM23LCxxx_IO_MODE_GET(pComp->InternalConfig);
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) NULL,
@@ -231,14 +231,14 @@ eERRORRESULT __SRAM23LCxxx_ReadData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Instr
 
   //--- Read data ---
   Error = __SRAM23LCxxx_WriteAddress(pComp, instruction, address, (instruction == SRAM23LCxxx_RDSR)); // Start a write at address with the device
-  if (Error == ERR_OK)                                 // If there is no error while writing address then
+  if (Error == ERR_NONE)                               // If there is no error while writing address then
   {
     if ((IOmode != SRAM23LCxxx_SPI) && (instruction != SRAM23LCxxx_RDSR)) // In SDI or SQI?
     {
       PacketDesc.DataSize  = 1;
       PacketDesc.Terminate = false;
       Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Continue the transfer by reading the dummy byte
-      if (Error != ERR_OK) return Error;               // If there is an error while calling fnSPI_Transfer() then return the error
+      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
       PacketDesc.DataSize  = size;
       PacketDesc.Terminate = true;
     }
@@ -276,12 +276,12 @@ eERRORRESULT SRAM23LCxxx_ReadSRAMData(SRAM23LCxxx *pComp, uint32_t address, uint
 
     //--- Write data ---
     Error = __SRAM23LCxxx_ReadData(pComp, SRAM23LCxxx_READ, address, pData, PageRemData); // Read data from a page/bytes
-    if (Error != ERR_OK) return Error;                                   // If there is an error while calling __SRAM23LCxxx_ReadData() then return the error
+    if (Error != ERR_NONE) return Error;                                 // If there is an error while calling __SRAM23LCxxx_ReadData() then return the error
     address += PageRemData;
     pData += PageRemData;
     size -= PageRemData;
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -311,11 +311,11 @@ eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Inst
 
   //--- Write data ---
   Error = __SRAM23LCxxx_WriteAddress(pComp, instruction, address, (instruction == SRAM23LCxxx_WRSR)); // Start a write at address with the device
-  if (Error == ERR_OK)                               // If there is no error while writing address then
+  if (Error == ERR_NONE)                             // If there is no error while writing address then
   {
     SPIInterface_Packet PacketDesc =
     {
-      SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
       SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
       SPI_MEMBER(DummyByte   ) 0x00,
       SPI_MEMBER(TxData      ) pData,
@@ -357,12 +357,12 @@ eERRORRESULT SRAM23LCxxx_WriteSRAMData(SRAM23LCxxx *pComp, uint32_t address, con
 
     //--- Write data ---
     Error = __SRAM23LCxxx_WriteData(pComp, SRAM23LCxxx_WRITE, address, pData, PageRemData); // Write data to a page/bytes
-    if (Error != ERR_OK) return Error;                                   // If there is an error while calling __SRAM23LCxxx_WriteData() then return the error
+    if (Error != ERR_NONE) return Error;                                 // If there is an error while calling __SRAM23LCxxx_WriteData() then return the error
     address += PageRemData;
     pData += PageRemData;
     size -= PageRemData;
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -387,7 +387,7 @@ eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx
   //--- Read data from SPI ---
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &RegData,
@@ -456,34 +456,34 @@ eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmode
   if (SRAM23LCxxx_IO_MODE_GET(pComp->InternalConfig) != SRAM23LCxxx_SPI)
   {
     Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO); // Return to SPI mode
-    if (Error != ERR_OK) return Error;                              // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+    if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     if (mode != SRAM23LCxxx_SPI)                                    // Reset interface to SPI only if the new mode will be other than SPI
     {
-      Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SPI mode
-      if (Error != ERR_OK) return Error;                            // If there is an error while calling fnSPI_Init() then return the error
+      Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SPI mode
+      if (Error != ERR_NONE) return Error;                          // If there is an error while calling fnSPI_Init() then return the error
     }
   }
 
   //--- Configure SPI interface ---
-  eSPIInterface_Mode SxImode = SPI_MODE0;                           // Default mode SPI
+  eSPIInterface_Mode SxImode = STD_SPI_MODE0;                       // Default mode SPI
   if (mode == SRAM23LCxxx_SDI)                                      // SDI mode asked?
   {
     Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_EDIO);  // Set SDI mode
-    if (Error != ERR_OK) return Error;                              // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+    if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     SxImode = DUAL_SPI_MODE0;
   }
   if (mode == SRAM23LCxxx_SQI)                                      // SQI mode asked?
   {
     Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_EQIO);  // Set SQI mode
-    if (Error != ERR_OK) return Error;                              // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+    if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     SxImode = QUAD_SPI_MODE0;
   }
   Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, SxImode, pComp->SPIclockSpeed);
-  if (Error != ERR_OK) return Error;                                // If there is an error while calling fnSPI_Init() then return the error
+  if (Error != ERR_NONE) return Error;                              // If there is an error while calling fnSPI_Init() then return the error
 
   pComp->InternalConfig &= ~SRAM23LCxxx_IO_MODE_Mask;
   pComp->InternalConfig |= SRAM23LCxxx_IO_MODE_SET(mode);           // Set the new I/O mode
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -506,17 +506,11 @@ eERRORRESULT SRAM23LCxxx_SetOperationMode(SRAM23LCxxx *pComp, const eSRAM23LCxxx
 
   //--- Set the new status ---
   Error = SRAM23LCxxx_SetStatus(pComp, Reg);
-  if (Error != ERR_OK) return Error;   // If there is an error while calling SRAM23LCxxx_SetStatus() then return the error
+  if (Error != ERR_NONE) return Error; // If there is an error while calling SRAM23LCxxx_SetStatus() then return the error
   pComp->InternalConfig &= 0xFF3E;     // Clear status into the internal config
   pComp->InternalConfig |= Reg.Status; // Set the new status into the internal config
-  return ERR_OK;
+  return ERR_NONE;
 }
-
-
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

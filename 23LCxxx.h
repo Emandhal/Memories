@@ -140,6 +140,8 @@ typedef enum
   SRAM23LCxxx_WRSR  = 0b00000001, //!< Write STATUS register
 } eSRAM23LCxxx_InstructionSet;
 
+//-----------------------------------------------------------------------------
+
 
 
 
@@ -208,10 +210,10 @@ typedef enum
 
 //-----------------------------------------------------------------------------
 
-
 typedef struct SRAM23LCxxx SRAM23LCxxx; //! Typedef of SRAM23LCxxx device object structure
 typedef uint16_t TSRAM23LCxxxDriverInternal; //! Alias for Driver Internal data flags
 
+//-----------------------------------------------------------------------------
 
 //! SRAM23LCxxx device object structure
 struct SRAM23LCxxx
@@ -232,7 +234,7 @@ struct SRAM23LCxxx
   uint32_t SPIclockSpeed;                    //!< Clock frequency of the SPI interface in Hertz
 };
 
-
+//-----------------------------------------------------------------------------
 
 //! SRAM23LCxxx Controller configuration structure
 typedef struct SRAM23LCxxx_Config
@@ -246,9 +248,6 @@ typedef struct SRAM23LCxxx_Config
 //-----------------------------------------------------------------------------
 
 
-
-
-
 /*! @brief SRAM23LCxxx initialization
  *
  * This function initializes the SRAM23LCxxx driver and call the initialization of the interface driver (SPI)
@@ -260,7 +259,6 @@ typedef struct SRAM23LCxxx_Config
 eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pConf);
 
 //********************************************************************************************************************
-
 
 
 /*! @brief Read SRAM data from the SRAM23LCxxx device
@@ -277,7 +275,6 @@ eERRORRESULT SRAM23LCxxx_ReadSRAMData(SRAM23LCxxx *pComp, uint32_t address, uint
 //********************************************************************************************************************
 
 
-
 /*! @brief Write SRAM data to the SRAM23LCxxx device
  *
  * This function writes data to the SRAM area of a SRAM23LCxxx device
@@ -288,7 +285,6 @@ eERRORRESULT SRAM23LCxxx_ReadSRAMData(SRAM23LCxxx *pComp, uint32_t address, uint
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT SRAM23LCxxx_WriteSRAMData(SRAM23LCxxx *pComp, uint32_t address, const uint8_t* data, size_t size);
-
 
 /*! @brief Write an instruction to the SRAM23LCxxx device
  *
@@ -302,7 +298,6 @@ eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx
 //********************************************************************************************************************
 
 
-
 /*! @brief Read Status register from the SRAM23LCxxx device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -310,7 +305,6 @@ eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT SRAM23LCxxx_GetStatus(SRAM23LCxxx *pComp, SRAM23LCxxx_StatusRegister* status);
-
 
 /*! @brief Write Status register to the SRAM23LCxxx device
  *
@@ -323,7 +317,6 @@ eERRORRESULT SRAM23LCxxx_SetStatus(SRAM23LCxxx *pComp, const SRAM23LCxxx_StatusR
 //********************************************************************************************************************
 
 
-
 /*! @brief Set the I/O mode of the SRAM23LCxxx
  *
  * The function takes care of the process to exchange the IO mode
@@ -333,7 +326,6 @@ eERRORRESULT SRAM23LCxxx_SetStatus(SRAM23LCxxx *pComp, const SRAM23LCxxx_StatusR
  */
 eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmodes mode);
 
-
 /*! @brief Set the SRAM operation mode of the SRAM23LCxxx
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -342,12 +334,6 @@ eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmode
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT SRAM23LCxxx_SetOperationMode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Modes mode, const bool disableHold);
-
-//********************************************************************************************************************
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

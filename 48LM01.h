@@ -59,12 +59,8 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 
-
-
 // Limits definitions
 #define EERAM48LM01_SPICLOCK_MAX  ( 66000000u ) //!< Max SPI clock frequency
-
-
 
 // Device definitions
 #define EERAM48LM01_PAGE_SIZE          ( 128 ) //!< The EERAM48LM01 is 128 bytes page size (for secured transfer)
@@ -112,6 +108,8 @@ typedef enum
 } eEERAM48LM01_OPcodes;
 
 #define EERAM48LM01_IS_NV_USER_SPACE(opCode)  ( ((uint8_t)(opCode) & 0xC0) == 0xC0 )
+
+//-----------------------------------------------------------------------------
 
 
 
@@ -191,9 +189,10 @@ typedef enum
 
 //-----------------------------------------------------------------------------
 
-
 typedef struct EERAM48LM01 EERAM48LM01; //! Typedef of EERAM48LM01 device object structure
 typedef uint8_t TEERAM48LM01DriverInternal; //! Alias for Driver Internal data flags
+
+//-----------------------------------------------------------------------------
 
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
@@ -201,7 +200,6 @@ typedef uint8_t TEERAM48LM01DriverInternal; //! Alias for Driver Internal data f
  * @return Returns the current millisecond of the system
  */
 typedef uint32_t (*GetCurrentms_Func)(void);
-
 
 #ifdef USE_EXTERNAL_CRC16
 /*! @brief Function that compute CRC16-IBM3740 for the driver
@@ -214,7 +212,7 @@ typedef uint32_t (*GetCurrentms_Func)(void);
 typedef uint16_t (*ComputeCRC16_Func)(uint16_t* pCRC, const uint8_t* data, size_t size);
 #endif
 
-
+//-----------------------------------------------------------------------------
 
 //! EERAM48LM01 device object structure
 struct EERAM48LM01
@@ -242,9 +240,6 @@ struct EERAM48LM01
 //-----------------------------------------------------------------------------
 
 
-
-
-
 /*! @brief EERAM48LM01 initialization
  *
  * This function initializes the EERAM48LM01 driver and call the initialization of the interface driver (SPI).
@@ -255,7 +250,6 @@ struct EERAM48LM01
 eERRORRESULT Init_EERAM48LM01(EERAM48LM01 *pComp);
 
 //********************************************************************************************************************
-
 
 
 /*! @brief Read SRAM data from the EERAM48LM01 device
@@ -269,7 +263,6 @@ eERRORRESULT Init_EERAM48LM01(EERAM48LM01 *pComp);
  */
 eERRORRESULT EERAM48LM01_ReadSRAMData(EERAM48LM01 *pComp, uint32_t address, uint8_t* data, size_t size);
 
-
 /*! @brief Secure read SRAM data to the EERAM48LM01 device
  *
  * This function reads data from the SRAM area of a EERAM48LM01 device with a CRC check
@@ -282,7 +275,6 @@ eERRORRESULT EERAM48LM01_ReadSRAMData(EERAM48LM01 *pComp, uint32_t address, uint
  */
 eERRORRESULT EERAM48LM01_ReadSecure(EERAM48LM01 *pComp, uint32_t address, uint8_t* data, size_t size);
 
-
 /*! @brief Write NonVolatile User Space data to the EERAM48LM01 device
  *
  * This function reads data from the NonVolatile User Space area of a EERAM48LM01 device
@@ -293,10 +285,9 @@ eERRORRESULT EERAM48LM01_ReadSecure(EERAM48LM01 *pComp, uint32_t address, uint8_
  */
 eERRORRESULT EERAM48LM01_ReadNVUSData(EERAM48LM01 *pComp, uint8_t* data);
 
-
 /*! @brief Read SRAM data with DMA from the EERAM48LM01 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM48LM01_ReadSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -310,7 +301,6 @@ eERRORRESULT EERAM48LM01_ReadSRAMDataWithDMA(EERAM48LM01 *pComp, uint32_t addres
 //********************************************************************************************************************
 
 
-
 /*! @brief Write SRAM data to the EERAM48LM01 device
  *
  * This function writes data to the SRAM area of a EERAM48LM01 device
@@ -321,7 +311,6 @@ eERRORRESULT EERAM48LM01_ReadSRAMDataWithDMA(EERAM48LM01 *pComp, uint32_t addres
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48LM01_WriteSRAMData(EERAM48LM01 *pComp, uint32_t address, const uint8_t* data, size_t size);
-
 
 /*! @brief Secure write SRAM data to the EERAM48LM01 device
  *
@@ -335,7 +324,6 @@ eERRORRESULT EERAM48LM01_WriteSRAMData(EERAM48LM01 *pComp, uint32_t address, con
  */
 eERRORRESULT EERAM48LM01_WriteSecure(EERAM48LM01 *pComp, uint32_t address, const uint8_t* data, size_t size);
 
-
 /*! @brief Write NonVolatile User Space data to the EERAM48LM01 device
  *
  * This function writes data to the NonVolatile User Space area of a EERAM48LM01 device
@@ -346,7 +334,6 @@ eERRORRESULT EERAM48LM01_WriteSecure(EERAM48LM01 *pComp, uint32_t address, const
  */
 eERRORRESULT EERAM48LM01_WriteNVUSData(EERAM48LM01 *pComp, const uint8_t* data);
 
-
 /*! @brief Write a command to the EERAM48LM01 device
  *
  * This function asserts the device, write the OP code and deasserts the device
@@ -356,10 +343,9 @@ eERRORRESULT EERAM48LM01_WriteNVUSData(EERAM48LM01 *pComp, const uint8_t* data);
  */
 eERRORRESULT EERAM48LM01_WriteCommand(EERAM48LM01 *pComp, const eEERAM48LM01_OPcodes command);
 
-
 /*! @brief Write SRAM data with DMA to the EERAM48LM01 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM48LM01_WriteSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -373,7 +359,6 @@ eERRORRESULT EERAM48LM01_WriteSRAMDataWithDMA(EERAM48LM01 *pComp, uint32_t addre
 //********************************************************************************************************************
 
 
-
 /*! @brief Get the status of the EERAM48LM01 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -381,7 +366,6 @@ eERRORRESULT EERAM48LM01_WriteSRAMDataWithDMA(EERAM48LM01 *pComp, uint32_t addre
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48LM01_GetStatus(EERAM48LM01 *pComp, EERAM48LM01_StatusRegister* status);
-
 
 /*! @brief Set the status of the EERAM48LM01 device
  *
@@ -394,7 +378,6 @@ eERRORRESULT EERAM48LM01_SetStatus(EERAM48LM01 *pComp, const EERAM48LM01_StatusR
 //********************************************************************************************************************
 
 
-
 /*! @brief Store all the SRAM to the EEPROM of the EERAM48LM01 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -402,7 +385,6 @@ eERRORRESULT EERAM48LM01_SetStatus(EERAM48LM01 *pComp, const EERAM48LM01_StatusR
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48LM01_StoreSRAMtoEEPROM(EERAM48LM01 *pComp, bool waitEndOfStore);
-
 
 /*! @brief Recall all data from EEPROM to SRAM of the EERAM48LM01 device
  *
@@ -412,14 +394,12 @@ eERRORRESULT EERAM48LM01_StoreSRAMtoEEPROM(EERAM48LM01 *pComp, bool waitEndOfSto
  */
 eERRORRESULT EERAM48LM01_RecallEEPROMtoSRAM(EERAM48LM01 *pComp, bool waitEndOfRecall);
 
-
 /*! @brief Activate the Auto-Store of the EERAM48LM01 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48LM01_ActivateAutoStore(EERAM48LM01 *pComp);
-
 
 /*! @brief Deactivate the Auto-Store of the EERAM48LM01 device
  *
@@ -428,7 +408,6 @@ eERRORRESULT EERAM48LM01_ActivateAutoStore(EERAM48LM01 *pComp);
  */
 eERRORRESULT EERAM48LM01_DeactivateAutoStore(EERAM48LM01 *pComp);
 
-
 /*! @brief Set block write protect of the EERAM48LM01 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -436,7 +415,6 @@ eERRORRESULT EERAM48LM01_DeactivateAutoStore(EERAM48LM01 *pComp);
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM48LM01_SetBlockWriteProtect(EERAM48LM01 *pComp, eEERAM48LM01_BlockProtect blockProtect);
-
 
 /*! @brief Set write enable of the EERAM48LM01 device
  *
@@ -450,7 +428,6 @@ inline eERRORRESULT EERAM48LM01_SetWriteEnable(EERAM48LM01 *pComp)
   return Error;
 }
 
-
 /*! @brief Set write disable of the EERAM48LM01 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -461,7 +438,6 @@ inline eERRORRESULT EERAM48LM01_SetWriteDisable(EERAM48LM01 *pComp)
   return EERAM48LM01_WriteCommand(pComp, EERAM48LM01_WRDI); // Send OP code of write disable
 }
 
-
 /*! @brief Put the EERAM48LM01 device in hibernation
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -471,12 +447,6 @@ inline eERRORRESULT EERAM48LM01_Hibernate(EERAM48LM01 *pComp)
 {
   return EERAM48LM01_WriteCommand(pComp, EERAM48LM01_HBRNT); // Send OP code of hibernation
 }
-
-//********************************************************************************************************************
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

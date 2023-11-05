@@ -108,7 +108,7 @@ eERRORRESULT Init_EERAM48L512(EERAM48L512 *pComp)
 
   //--- Configure SPI ---
   if (pComp->SPIclockSpeed > EERAM48L512_SPICLOCK_MAX) return ERR__SPI_FREQUENCY_ERROR;
-  return pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, SPI_MODE0, pComp->SPIclockSpeed);
+  return pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed);
 }
 
 
@@ -166,7 +166,7 @@ eERRORRESULT __EERAM48L512_WriteAddress(EERAM48L512 *pComp, const uint8_t opCode
   //--- Send the address ---
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &Address[0],
@@ -205,11 +205,11 @@ eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, ui
   uint16_t* pCRC = (useCRC ? &CRC : NULL);
   Error = __EERAM48L512_WriteAddress(pComp, opCode, address, pCRC); // Start a write at address with the device
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;    // Remove write enable flag
-  if (Error == ERR_OK)                                              // If there is no error while writing address then
+  if (Error == ERR_NONE)                                            // If there is no error while writing address then
   {
     SPIInterface_Packet PacketDesc =
     {
-      SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
       SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
       SPI_MEMBER(DummyByte   ) 0x00,
       SPI_MEMBER(TxData      ) NULL,
@@ -220,7 +220,7 @@ eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, ui
     Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);   // Continue the transfer by reading the data and stop transfer if no CRC
     if (useCRC)                                        // If the CRC computation shall be retreived with the data...
     {
-      if (Error != ERR_OK) return Error;               // If there is an error while calling fnSPI_Transfer() then return the error
+      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
       ComputeCRC16IBM3740(pCRC, data, size);           // Calculate CRC of received data
       //--- Get the CRC ---
       uint8_t CRCdata[2];
@@ -228,7 +228,7 @@ eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, ui
       PacketDesc.DataSize     = sizeof(CRCdata);
       PacketDesc.Terminate    = true;
       Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Continue the transfer by reading the CRC and stop transfer
-      if (Error != ERR_OK) return Error;               // If there is an error while calling fnSPI_Transfer() then return the error
+      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
       //--- Check the CRC ---
       const uint16_t ReceivedCRC = (((uint16_t)CRCdata[0] << 8) | (uint16_t)CRCdata[1]);
       if (ReceivedCRC != CRC) return ERR__CRC_ERROR;
@@ -267,13 +267,13 @@ eERRORRESULT EERAM48L512_ReadSecure(EERAM48L512 *pComp, uint16_t address, uint8_
   {
     //--- Read data ---
     Error = __EERAM48L512_ReadData(pComp, EERAM48L512_SREAD, address, data, EERAM48L512_PAGE_SIZE, true); // Write data to a page with CRC
-    if (Error != ERR_OK) return Error;                                                                    // If there is an error while calling __EERAM48L512_ReadData() then return the error
+    if (Error != ERR_NONE) return Error;                                                                  // If there is an error while calling __EERAM48L512_ReadData() then return the error
     //--- Update parameters ---
     address += EERAM48L512_PAGE_SIZE;
     data += EERAM48L512_PAGE_SIZE;
     size -= EERAM48L512_PAGE_SIZE;
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -311,7 +311,7 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
   if (EERAM48L512_IS_DMA_TRANSFER_IN_PROGRESS(pComp->InternalConfig))
   {
     const uint16_t CurrTransactionNumber = EERAM48L512_TRANSACTION_NUMBER_GET(pComp->InternalConfig);
-    PacketDesc.Config.Value = SPI_USE_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
+    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
     PacketDesc.ChipSelect   = pComp->SPIchipSelect;
     PacketDesc.DummyByte    = 0x00;
     PacketDesc.TxData       = NULL;
@@ -326,9 +326,9 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
   //--- Read data ---
   Error = __EERAM48L512_WriteAddress(pComp, EERAM48L512_READ, address, NULL); // Start a read at address with the device
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;              // Remove write enable flag
-  if (Error == ERR_OK)// If there is no error while writing address then
+  if (Error == ERR_NONE)                                                      // If there is no error while writing address then
   {
-    PacketDesc.Config.Value = SPI_USE_POLLING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
+    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
     PacketDesc.ChipSelect   = pComp->SPIchipSelect;
     PacketDesc.DummyByte    = 0x00;
     PacketDesc.TxData       = NULL;
@@ -373,11 +373,11 @@ eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, u
   uint16_t* pCRC = (useCRC ? &CRC : NULL);
   Error = __EERAM48L512_WriteAddress(pComp, opCode, address, pCRC); // Start a write at address with the device
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;    // Remove write enable flag
-  if (Error == ERR_OK)                                              // If there is no error while writing address then
+  if (Error == ERR_NONE)                                            // If there is no error while writing address then
   {
     SPIInterface_Packet PacketDesc =
     {
-      SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
       SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
       SPI_MEMBER(DummyByte   ) 0x00,
       SPI_MEMBER(TxData      ) pData,
@@ -388,7 +388,7 @@ eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, u
     Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);   // Continue the transfer by sending the data and stop transfer if no CRC
     if (useCRC)                                        // If the CRC computation shall be sent with the data...
     {
-      if (Error != ERR_OK) return Error;               // If there is an error while calling fnSPI_Transfer() then return the error
+      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
       ComputeCRC16IBM3740(pCRC, pData, size);          // Calculate CRC
       //--- Send the CRC ---
       uint8_t CRCdata[2] = { (uint8_t)(*pCRC >> 8), (uint8_t)(*pCRC & 0xFF) };
@@ -433,10 +433,10 @@ eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const
   {
     //--- Write data ---
     Error = __EERAM48L512_WriteData(pComp, EERAM48L512_SWRITE, address, pData, EERAM48L512_PAGE_SIZE, true); // Write data to a page with CRC
-    if (Error != ERR_OK) return Error;                                                                       // If there is an error while calling __EERAM48L512_WriteData() then return the error
+    if (Error != ERR_NONE) return Error;                                                                     // If there is an error while calling __EERAM48L512_WriteData() then return the error
     //--- Check the write ---
     Error = EERAM48L512_GetStatus(pComp, &RegStatus);
-    if (Error != ERR_OK) return Error;                                                                       // If there is an error while calling EERAM48L512_GetStatus() then return the error
+    if (Error != ERR_NONE) return Error;                                                                     // If there is an error while calling EERAM48L512_GetStatus() then return the error
     if ((RegStatus.Status & EERAM48L512_WRITE_SECURE_FAILED) != 0) return ERR__CRC_ERROR;                    // Check CRC
     //--- Update parameters ---
     address += EERAM48L512_PAGE_SIZE;
@@ -444,7 +444,7 @@ eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const
     size -= EERAM48L512_PAGE_SIZE;
     if ((size > 0) && EERAM48L512_IS_STATUS_WRITE_ENABLE(pComp->InternalConfig)) EERAM48L512_SetWriteEnable(pComp); // Set write enable for next page
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -480,7 +480,7 @@ eERRORRESULT EERAM48L512_WriteCommand(EERAM48L512 *pComp, const eEERAM48L512_OPc
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &RegData,
@@ -517,7 +517,7 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
   if (EERAM48L512_IS_DMA_TRANSFER_IN_PROGRESS(pComp->InternalConfig))
   {
     const uint16_t CurrTransactionNumber = EERAM48L512_TRANSACTION_NUMBER_GET(pComp->InternalConfig);
-    PacketDesc.Config.Value = SPI_USE_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
+    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
     PacketDesc.ChipSelect   = pComp->SPIchipSelect;
     PacketDesc.DummyByte    = 0x00;
     PacketDesc.TxData       = NULL;
@@ -532,9 +532,9 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
   //--- Write data ---
   Error = __EERAM48L512_WriteAddress(pComp, EERAM48L512_WRITE, address, NULL); // Start a read at address with the device
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;               // Remove write enable flag
-  if (Error == ERR_OK)                                                         // If there is no error while writing address then
+  if (Error == ERR_NONE)                                                       // If there is no error while writing address then
   {
-    PacketDesc.Config.Value = SPI_USE_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
+    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
     PacketDesc.ChipSelect   = pComp->SPIchipSelect;
     PacketDesc.DummyByte    = 0x00;
     PacketDesc.TxData       = pData;
@@ -577,7 +577,7 @@ eERRORRESULT EERAM48L512_GetStatus(EERAM48L512 *pComp, EERAM48L512_StatusRegiste
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &RegData[0],
@@ -613,7 +613,7 @@ eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusR
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
   SPIInterface_Packet PacketDesc =
   {
-    SPI_MEMBER(Config.Value) SPI_NO_POLLING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
+    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
     SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
     SPI_MEMBER(DummyByte   ) 0x00,
     SPI_MEMBER(TxData      ) &RegData[0],
@@ -639,11 +639,11 @@ eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfSto
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   EERAM48L512_StatusRegister Reg;
-  eERRORRESULT Error = ERR_OK;
+  eERRORRESULT Error = ERR_NONE;
 
   //--- Send the store operation ---
   Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_STORE); // Start a store
-  if (Error != ERR_OK) return Error;                          // If there is an error while calling EERAM48L512_WriteCommand() then return the error
+  if (Error != ERR_NONE) return Error;                        // If there is an error while calling EERAM48L512_WriteCommand() then return the error
 
   //--- Wait the end of store if asked ---
   if (waitEndOfStore)
@@ -653,7 +653,7 @@ eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfSto
     while (true)
     {
       Error = EERAM48L512_GetStatus(pComp, &Reg);                         // Get the status register
-      if (Error != ERR_OK) return Error;                                  // If there is an error while calling EERAM48L512_GetStatus() then return the error
+      if (Error != ERR_NONE) return Error;                                // If there is an error while calling EERAM48L512_GetStatus() then return the error
       if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                 // The store is finished, all went fine
       if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
     }
@@ -672,11 +672,11 @@ eERRORRESULT EERAM48L512_RecallEEPROMtoSRAM(EERAM48L512 *pComp, bool waitEndOfRe
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
   EERAM48L512_StatusRegister Reg;
-  eERRORRESULT Error = ERR_OK;
+  eERRORRESULT Error = ERR_NONE;
 
   //--- Send a recall operation ---
   Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_RECALL); // Start a store
-  if (Error != ERR_OK) return Error;                           // If there is an error while calling EERAM48L512_WriteCommand() then return the error
+  if (Error != ERR_NONE) return Error;                         // If there is an error while calling EERAM48L512_WriteCommand() then return the error
   //--- Wait the end of recall if asked ---
   if (waitEndOfRecall)
   {
@@ -685,12 +685,12 @@ eERRORRESULT EERAM48L512_RecallEEPROMtoSRAM(EERAM48L512 *pComp, bool waitEndOfRe
     while (true)
     {
       Error = EERAM48L512_GetStatus(pComp, &Reg);                         // Get the status register
-      if (Error != ERR_OK) return Error;                                  // If there is an error while calling EERAM48L512_GetStatus() then return the error
+      if (Error != ERR_NONE) return Error;                                // If there is an error while calling EERAM48L512_GetStatus() then return the error
       if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                 // The recall is finished, all went fine
       if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
     }
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -700,12 +700,12 @@ eERRORRESULT EERAM48L512_RecallEEPROMtoSRAM(EERAM48L512 *pComp, bool waitEndOfRe
 //=============================================================================
 eERRORRESULT EERAM48L512_ActivateAutoStore(EERAM48L512 *pComp)
 {
-  eERRORRESULT Error = ERR_OK;
+  eERRORRESULT Error = ERR_NONE;
   EERAM48L512_StatusRegister Reg;
 
   //--- Get the status register ---
   Error = EERAM48L512_GetStatus(pComp, &Reg);   // Get the status register
-  if (Error != ERR_OK) return Error;            // If there is an error while calling EERAM48L512_GetStatus() then return the error
+  if (Error != ERR_NONE) return Error;          // If there is an error while calling EERAM48L512_GetStatus() then return the error
   //--- Set the status register ---
   Reg.Status &= ~EERAM48L512_AUTOSTORE_DISABLE; // Unset the Auto-Store flag
   return EERAM48L512_SetStatus(pComp, Reg);     // Save the status register
@@ -718,12 +718,12 @@ eERRORRESULT EERAM48L512_ActivateAutoStore(EERAM48L512 *pComp)
 //=============================================================================
 eERRORRESULT EERAM48L512_DeactivateAutoStore(EERAM48L512 *pComp)
 {
-  eERRORRESULT Error = ERR_OK;
+  eERRORRESULT Error = ERR_NONE;
   EERAM48L512_StatusRegister Reg;
 
   //--- Get the status register ---
   Error = EERAM48L512_GetStatus(pComp, &Reg);  // Get the status register
-  if (Error != ERR_OK) return Error;           // If there is an error while calling EERAM48L512_GetStatus() then return the error
+  if (Error != ERR_NONE) return Error;         // If there is an error while calling EERAM48L512_GetStatus() then return the error
   //--- Set the status register ---
   Reg.Status |= EERAM48L512_AUTOSTORE_DISABLE; // Set the Auto-Store flag
   return EERAM48L512_SetStatus(pComp, Reg);    // Save the status register
@@ -736,27 +736,19 @@ eERRORRESULT EERAM48L512_DeactivateAutoStore(EERAM48L512 *pComp)
 //=============================================================================
 eERRORRESULT EERAM48L512_SetBlockWriteProtect(EERAM48L512 *pComp, eEERAM48L512_BlockProtect blockProtect)
 {
-  eERRORRESULT Error = ERR_OK;
+  eERRORRESULT Error = ERR_NONE;
   EERAM48L512_StatusRegister Reg;
 
   //--- Get the status register ---
   Error = EERAM48L512_GetStatus(pComp, &Reg); // Get the status register
-  if (Error != ERR_OK) return Error;          // If there is an error while calling EERAM48L512_GetStatus() then return the error
+  if (Error != ERR_NONE) return Error;        // If there is an error while calling EERAM48L512_GetStatus() then return the error
   //--- Set the status register ---
   Reg.Bits.BP = (uint8_t)blockProtect;        // Set the block protect
   return EERAM48L512_SetStatus(pComp, Reg);   // Save the status register
 }
 
-
-
-
-
 //-----------------------------------------------------------------------------
-/// @cond 0
-/**INDENT-OFF**/
 #ifdef __cplusplus
 }
 #endif
-/**INDENT-ON**/
-/// @endcond
 //-----------------------------------------------------------------------------
