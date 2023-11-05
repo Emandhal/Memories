@@ -1,8 +1,8 @@
 /*!*****************************************************************************
  * @file    AT24MAC402.h
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.1.0
- * @date    24/08/2020
+ * @version 1.2.0
+ * @date    04/06/2023
  * @brief   AT24MAC402 driver
  * @details I2C-Compatible (2-wire) 2-Kbit (256kB x 8) Serial EEPROM with a
  * Factory-Programmed EUI-48™ Address plus an Embedded Unique 128-bit Serial Number
@@ -10,7 +10,7 @@
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020 Fabien MAILLY
+ * Copyright (c) 2020-2023 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 1.2.0    Add EEPROM genericness
  * 1.1.0    I2C interface rework
  * 1.0.0    Release version
  *****************************************************************************/
@@ -43,6 +44,10 @@
 #include "ErrorsDef.h"
 #include "I2C_Interface.h"
 //-----------------------------------------------------------------------------
+#ifdef USE_EEPROM_GENERICNESS
+#  include "EEPROM.h"
+#endif
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
 #  define __AT24MAC402_PACKED__
@@ -53,7 +58,6 @@ extern "C" {
 #  define AT24MAC402_PACKITEM
 #  define AT24MAC402_UNPACKITEM
 #endif
-
 //-----------------------------------------------------------------------------
 
 //! This macro is used to check the size of an object. If not, it will raise a "divide by 0" error at compile time
@@ -61,13 +65,9 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 
-
-
 // Limits definitions
 #define AT24MAC402_I2CCLOCK_MAX1V7      (  400000u ) //!< Max I2C clock frequency at 1.7V
 #define AT24MAC402_I2CCLOCK_MAXSUP2V5   ( 1000000u ) //!< Max I2C clock frequency at 2.5V or more
-
-
 
 // Device definitions
 #define AT24MAC402_EEPROM_CHIPADDRESS_BASE  ( 0xA0 ) //!< EEPROM chip base address
@@ -90,12 +90,17 @@ extern "C" {
 
 #define AT24MAC402_SERIAL_SIZE              ( 16 ) //!< AT24MAC402 Unique Serial Number size
 
-
-
 /*! @brief Generate the AT24MAC402 chip configurable address following the state of A0, A1, and A2
  * You shall set '1' (when corresponding pin is connected to +V) or '0' (when corresponding pin is connected to Ground) on each parameter
  */
 #define AT24MAC402_ADDR(A2, A1, A0)  ( (uint8_t)((((A2) & 0x01) << 3) | (((A1) & 0x01) << 2) | (((A0) & 0x01) << 1)) )
+
+//-----------------------------------------------------------------------------
+
+#ifdef USE_EEPROM_GENERICNESS
+// AT24MAC402 EEPROM configurations
+extern const EEPROM_Conf AT24MAC402_1V7_Conf, AT24MAC402_Conf;
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -115,25 +120,23 @@ extern "C" {
 AT24MAC402_PACKITEM
 typedef union __AT24MAC402_PACKED__ AT24MAC402_MAC_EUI48
 {
-    uint8_t EUI48[EUI48_LEN];
-    struct
-    {
-      uint8_t OUI[EUI48_OUI_LEN]; //!< Organizationally Unique Identifier (OUI) data
-      uint8_t NIC[EUI48_NIC_LEN]; //!< Network Interface Controller (NIC) data
-    };
-    struct
-    {
-        uint8_t IGcast: 1; //!< 0   - '0' => Unicast ; '1' => Multicast
-        uint8_t ULaddr: 1; //!< 1   - '0' => Globally unique ; '1' => Locally Administered
-        uint8_t       : 6; //!< 2-7
-    } Bits;
+  uint8_t EUI48[EUI48_LEN];
+  struct
+  {
+    uint8_t OUI[EUI48_OUI_LEN]; //!< Organizationally Unique Identifier (OUI) data
+    uint8_t NIC[EUI48_NIC_LEN]; //!< Network Interface Controller (NIC) data
+  };
+  struct
+  {
+    uint8_t IGcast: 1; //!< 0   - '0' => Unicast ; '1' => Multicast
+    uint8_t ULaddr: 1; //!< 1   - '0' => Globally unique ; '1' => Locally Administered
+    uint8_t       : 6; //!< 2-7
+  } Bits;
 } AT24MAC402_MAC_EUI48;
 AT24MAC402_UNPACKITEM
 AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI48, EUI48_LEN);
 
 //-----------------------------------------------------------------------------
-
-
 
 #define EUI64_OUI_LEN  ( 3 ) //!< Organizationally Unique Identifier (OUI) size is 3 bytes
 #define EUI64_NIC_LEN  ( 5 ) //!< Network Interface Controller (NIC) size is 5 bytes
@@ -143,18 +146,18 @@ AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI48, EUI48_LEN);
 AT24MAC402_PACKITEM
 typedef union __AT24MAC402_PACKED__ AT24MAC402_MAC_EUI64
 {
-    uint8_t EUI64[EUI64_LEN];
-    struct
-    {
-      uint8_t OUI[EUI64_OUI_LEN]; //!< Organizationally Unique Identifier (OUI) data
-      uint8_t NIC[EUI64_NIC_LEN]; //!< Network Interface Controller (NIC) data
-    };
-    struct
-    {
-        uint8_t IGcast: 1; //!< 0   - '0' => Unicast ; '1' => Multicast
-        uint8_t ULaddr: 1; //!< 1   - '0' => Globally unique ; '1' => Locally Administered
-        uint8_t       : 6; //!< 2-7
-    } Bits;
+  uint8_t EUI64[EUI64_LEN];
+  struct
+  {
+    uint8_t OUI[EUI64_OUI_LEN]; //!< Organizationally Unique Identifier (OUI) data
+    uint8_t NIC[EUI64_NIC_LEN]; //!< Network Interface Controller (NIC) data
+  };
+  struct
+  {
+    uint8_t IGcast: 1; //!< 0   - '0' => Unicast ; '1' => Multicast
+    uint8_t ULaddr: 1; //!< 1   - '0' => Globally unique ; '1' => Locally Administered
+    uint8_t       : 6; //!< 2-7
+  } Bits;
 } AT24MAC402_MAC_EUI64;
 AT24MAC402_UNPACKITEM
 AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI64, EUI64_LEN);
@@ -172,41 +175,50 @@ AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI64, EUI64_LEN);
 //********************************************************************************************************************
 // AT24MAC402 Driver API
 //********************************************************************************************************************
+
 typedef struct AT24MAC402 AT24MAC402; //! Typedef of AT24MAC402 device object structure
 
+//-----------------------------------------------------------------------------
 
+#if !defined(USE_EEPROM_GENERICNESS)
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
  * This function will be called when the driver needs to get current millisecond
  * @return Returns the current millisecond of the system
  */
 typedef uint32_t (*GetCurrentms_Func)(void);
+#endif
 
-
+//-----------------------------------------------------------------------------
 
 //! AT24MAC402 device object structure
 struct AT24MAC402
 {
-  void *UserDriverData;             //!< Optional, can be used to store driver data or NULL
-
-  //--- Interface driver call functions ---
-#ifdef USE_DYNAMIC_INTERFACE
-  I2C_Interface* I2C;               //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+#ifdef USE_EEPROM_GENERICNESS
+  struct EEPROM Eeprom;
 #else
-  I2C_Interface I2C;                //!< This is the I2C_Interface descriptor that will be used to communicate with the device
-#endif
-  uint32_t I2CclockSpeed;           //!< Clock frequency of the I2C interface in Hertz
+  struct EEPROM_AT24MAC402
+  {
+    void *UserDriverData;             //!< Optional, can be used to store driver data or NULL
 
-  //--- Time call function ---
-  GetCurrentms_Func fnGetCurrentms; //!< This function will be called when the driver need to get current millisecond
+    //--- Interface driver call functions ---
+# ifdef USE_DYNAMIC_INTERFACE
+    I2C_Interface* I2C;               //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+# else
+    I2C_Interface I2C;                //!< This is the I2C_Interface descriptor that will be used to communicate with the device
+# endif
+    uint32_t I2CclockSpeed;           //!< Clock frequency of the I2C interface in Hertz
 
-  //--- Device address ---
-  uint8_t AddrA2A1A0;               //!< Device configurable address A2, A1, and A0. You can use the macro AT24MAC402_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210. where 2 is A2, 1 is A1, 0 is A0, and '.' are fixed by device
+    //--- Time call function ---
+    GetCurrentms_Func fnGetCurrentms; //!< This function will be called when the driver need to get current millisecond
+
+    //--- Device address ---
+    uint8_t AddrA2A1A0;               //!< Device configurable address A2, A1, and A0. You can use the macro AT24MAC402_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....210. where 2 is A2, 1 is A1, 0 is A0, and '.' are fixed by device
+  } Eeprom;
+#endif // USE_EEPROM_GENERICNESS
 };
+
 //-----------------------------------------------------------------------------
-
-
-
 
 
 /*! @brief AT24MAC402 initialization
@@ -218,8 +230,6 @@ struct AT24MAC402
  */
 eERRORRESULT Init_AT24MAC402(AT24MAC402 *pComp);
 
-
-
 /*! @brief Is the AT24MAC402 device ready
  *
  * Poll the acknowledge from the AT24MAC402
@@ -228,8 +238,7 @@ eERRORRESULT Init_AT24MAC402(AT24MAC402 *pComp);
  */
 bool AT24MAC402_IsReady(AT24MAC402 *pComp);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Read EEPROM data from the AT24MAC402 device
@@ -243,8 +252,6 @@ bool AT24MAC402_IsReady(AT24MAC402 *pComp);
  */
 eERRORRESULT AT24MAC402_ReadEEPROMData(AT24MAC402 *pComp, uint8_t address, uint8_t* data, size_t size);
 
-
-
 /*! @brief Write EEPROM data to the AT24MAC402 device
  *
  * This function writes data to the EEPROM area of a AT24MAC402 device
@@ -256,16 +263,13 @@ eERRORRESULT AT24MAC402_ReadEEPROMData(AT24MAC402 *pComp, uint8_t address, uint8
  */
 eERRORRESULT AT24MAC402_WriteEEPROMData(AT24MAC402 *pComp, uint8_t address, const uint8_t* data, size_t size);
 
-
-
 /*! @brief Wait the end of write to the AT24MAC402 device
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT AT24MAC402_WaitEndOfWrite(AT24MAC402 *pComp);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Read the EUI-48 register of the AT24MAC402 device
@@ -277,7 +281,6 @@ eERRORRESULT AT24MAC402_WaitEndOfWrite(AT24MAC402 *pComp);
  */
 eERRORRESULT AT24MAC402_GetEUI48(AT24MAC402 *pComp, AT24MAC402_MAC_EUI48 *pEUI48);
 
-
 /*! @brief Generate a EUI-64 value from the EUI-48 of the AT24MAC402 device
  *
  * This function get a EUI-48 data from the AT24MAC402 device and convert it to a EUI-64
@@ -287,8 +290,7 @@ eERRORRESULT AT24MAC402_GetEUI48(AT24MAC402 *pComp, AT24MAC402_MAC_EUI48 *pEUI48
  */
 eERRORRESULT AT24MAC402_GenerateEUI64(AT24MAC402 *pComp, AT24MAC402_MAC_EUI64 *pEUI64);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Read the 128-bits Serial Number register of the AT24MAC402 device
@@ -300,8 +302,7 @@ eERRORRESULT AT24MAC402_GenerateEUI64(AT24MAC402 *pComp, AT24MAC402_MAC_EUI64 *p
  */
 eERRORRESULT AT24MAC402_Get128bitsSerialNumber(AT24MAC402 *pComp, uint8_t *dataSerialNum);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Set the Permanent Software Write Protection (PSWP) of the AT24MAC402 device
@@ -311,12 +312,6 @@ eERRORRESULT AT24MAC402_Get128bitsSerialNumber(AT24MAC402 *pComp, uint8_t *dataS
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT AT24MAC402_SetPermanentWriteProtection(AT24MAC402 *pComp);
-
-//********************************************************************************************************************
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

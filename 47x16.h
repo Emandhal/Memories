@@ -1,15 +1,15 @@
 /*!*****************************************************************************
  * @file    47x16.h
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.1.0
- * @date    23/10/2021
+ * @version 1.2.0
+ * @date    04/06/2023
  * @brief   EERAM47x16 driver
  * @details I2C-Compatible (2-wire) 16-Kbit (2kB x 8) Serial EERAM
  * Follow datasheet 47L04/47C04/47L16/47C16 Rev.C (Jun 2016)
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020 Fabien MAILLY
+ * Copyright (c) 2020-2023 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,8 @@
  *****************************************************************************/
 
 /* Revision history:
- * 1.0.1    I2C interface rework for I2C DMA use
+ * 1.2.0    Add EEPROM genericness
+ * 1.1.0    I2C interface rework for I2C DMA use
  * 1.0.0    Release version
  *****************************************************************************/
 #ifndef EERAM47x16_H_INC
@@ -41,6 +42,10 @@
 //-----------------------------------------------------------------------------
 #include "ErrorsDef.h"
 #include "I2C_Interface.h"
+//-----------------------------------------------------------------------------
+#ifdef USE_EEPROM_GENERICNESS
+#  include "EEPROM.h"
+#endif
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus
 extern "C" {
@@ -59,12 +64,15 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 
+#ifdef USE_EEPROM_GENERICNESS
+// 47(L/C)16 EERAM configurations
+extern const EEPROM_Conf EERAM47L16_Conf, EERAM47C16_Conf;
+#endif
 
+//-----------------------------------------------------------------------------
 
 // Limits definitions
 #define EERAM47x16_I2CCLOCK_MAX  ( 1000000u ) //!< Max I2C clock frequency
-
-
 
 // Device definitions
 #define EERAM47x16_SRAM_CHIPADDRESS_BASE  ( 0xA0 ) //!< SRAM chip base address
@@ -82,8 +90,6 @@ extern "C" {
 
 #define EERAM47x16_STORE_TIMEOUT          ( 25 ) //!< Store Operation Duration: 25ms
 #define EERAM47x16_RECALL_TIMEOUT         (  5 ) //!< Recall Operation Duration: 5ms
-
-
 
 /*! @brief Generate the EERAM47x16 chip configurable address following the state of A1, and A2
  * You shall set '1' (when corresponding pin is connected to +V) or '0' (when corresponding pin is connected to Ground) on each parameter
@@ -163,44 +169,51 @@ typedef enum
 
 //-----------------------------------------------------------------------------
 
-
 typedef struct EERAM47x16 EERAM47x16; //! Typedef of EERAM47x16 device object structure
 typedef uint8_t TEERAM47x16DriverInternal; //! Alias for Driver Internal data flags
 
+//-----------------------------------------------------------------------------
 
+#if !defined(USE_EEPROM_GENERICNESS)
 /*! @brief Function that gives the current millisecond of the system to the driver
  *
  * This function will be called when the driver needs to get current millisecond
  * @return Returns the current millisecond of the system
  */
 typedef uint32_t (*GetCurrentms_Func)(void);
+#endif
 
-
+//-----------------------------------------------------------------------------
 
 //! EERAM47x16 device object structure
 struct EERAM47x16
 {
-  void *UserDriverData;                     //!< Optional, can be used to store driver data or NULL
-  TEERAM47x16DriverInternal InternalConfig; //!< DO NOT USE OR CHANGE THIS VALUE, IT'S THE INTERNAL DRIVER CONFIGURATION
-
-  //--- Interface driver call functions ---
-#ifdef USE_DYNAMIC_INTERFACE
-  I2C_Interface* I2C;                       //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+#ifdef USE_EEPROM_GENERICNESS
+  struct EEPROM Eeprom;
 #else
-  I2C_Interface I2C;                        //!< This is the I2C_Interface descriptor that will be used to communicate with the device
-#endif
-  uint32_t I2CclockSpeed;                   //!< Clock frequency of the I2C interface in Hertz
+  struct EEPROM_EERAM47x16
+  {
+    void *UserDriverData;                     //!< Optional, can be used to store driver data or NULL
+    TEERAM47x16DriverInternal InternalConfig; //!< DO NOT USE OR CHANGE THIS VALUE, IT'S THE INTERNAL DRIVER CONFIGURATION
 
-  //--- Time call function ---
-  GetCurrentms_Func fnGetCurrentms;         //!< This function will be called when the driver need to get current millisecond
+    //--- Interface driver call functions ---
+# ifdef USE_DYNAMIC_INTERFACE
+    I2C_Interface* I2C;                       //!< This is the I2C_Interface descriptor pointer that will be used to communicate with the device
+# else
+    I2C_Interface I2C;                        //!< This is the I2C_Interface descriptor that will be used to communicate with the device
+# endif
+    uint32_t I2CclockSpeed;                   //!< Clock frequency of the I2C interface in Hertz
 
-  //--- Device address ---
-  uint8_t AddrA2A1;                         //!< Device configurable address A2, and A1. You can use the macro EERAM47x16_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....21.. where 2 is A2, 1 is A1, and '.' are fixed by device
+    //--- Time call function ---
+    GetCurrentms_Func fnGetCurrentms;         //!< This function will be called when the driver need to get current millisecond
+
+    //--- Device address ---
+    uint8_t AddrA2A1A0;                       //!< Device configurable address A2, and A1. A0 is not used. You can use the macro EERAM47x16_ADDR() to help filling this parameter. Only these 3 lower bits are used: ....21.. where 2 is A2, 1 is A1, and '.' are fixed by device
+  } Eeprom;
+#endif // USE_EEPROM_GENERICNESS
 };
+
 //-----------------------------------------------------------------------------
-
-
-
 
 
 /*! @brief EERAM47x16 initialization
@@ -212,8 +225,6 @@ struct EERAM47x16
  */
 eERRORRESULT Init_EERAM47x16(EERAM47x16 *pComp);
 
-
-
 /*! @brief Is the EERAM47x16 device ready
  *
  * Poll the acknowledge from the EERAM47x16
@@ -222,8 +233,7 @@ eERRORRESULT Init_EERAM47x16(EERAM47x16 *pComp);
  */
 bool EERAM47x16_IsReady(EERAM47x16 *pComp);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Read SRAM data from the EERAM47x16 device
@@ -237,7 +247,6 @@ bool EERAM47x16_IsReady(EERAM47x16 *pComp);
  */
 eERRORRESULT EERAM47x16_ReadSRAMData(EERAM47x16 *pComp, uint16_t address, uint8_t* data, size_t size);
 
-
 /*! @brief Read Control register from the EERAM47x16 device
  *
  * This function reads the content of the Status register of a EERAM47x16 device
@@ -247,10 +256,9 @@ eERRORRESULT EERAM47x16_ReadSRAMData(EERAM47x16 *pComp, uint16_t address, uint8_
  */
 eERRORRESULT EERAM47x16_ReadRegister(EERAM47x16 *pComp, uint8_t* data);
 
-
 /*! @brief Read SRAM data with DMA from the EERAM47x16 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM47x16_ReadSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -261,8 +269,7 @@ eERRORRESULT EERAM47x16_ReadRegister(EERAM47x16 *pComp, uint8_t* data);
  */
 eERRORRESULT EERAM47x16_ReadSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address, uint8_t* data, size_t size);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Write SRAM data to the EERAM47x16 device
@@ -276,7 +283,6 @@ eERRORRESULT EERAM47x16_ReadSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address,
  */
 eERRORRESULT EERAM47x16_WriteSRAMData(EERAM47x16 *pComp, uint16_t address, const uint8_t* data, size_t size);
 
-
 /*! @brief Write Control register to the EERAM47x16 device
  *
  * This function writes data to the status or the command register of a EERAM47x16 device
@@ -289,10 +295,9 @@ eERRORRESULT EERAM47x16_WriteSRAMData(EERAM47x16 *pComp, uint16_t address, const
  */
 eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const uint8_t data);
 
-
 /*! @brief Write SRAM data with DMA to the EERAM47x16 device
  *
- * To know the state of the DMA transfer, call this function. When the function returns ERR_OK, it means that the transfer is complete else it returns the current state/error
+ * To know the state of the DMA transfer, call this function. When the function returns ERR_NONE, it means that the transfer is complete else it returns the current state/error
  * In case of no DMA, the function act like a EERAM47x16_WriteSRAMData() function
  * @warning Never touch the data processed by the DMA before its completion
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -303,8 +308,7 @@ eERRORRESULT EERAM47x16_WriteRegister(EERAM47x16 *pComp, uint8_t address, const 
  */
 eERRORRESULT EERAM47x16_WriteSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address, const uint8_t* data, size_t size);
 
-//********************************************************************************************************************
-
+//-----------------------------------------------------------------------------
 
 
 /*! @brief Store all the SRAM to the EEPROM of the EERAM47x16 device
@@ -316,7 +320,6 @@ eERRORRESULT EERAM47x16_WriteSRAMDataWithDMA(EERAM47x16 *pComp, uint16_t address
  */
 eERRORRESULT EERAM47x16_StoreSRAMtoEEPROM(EERAM47x16 *pComp, bool force, bool waitEndOfStore);
 
-
 /*! @brief Recall all data from EEPROM to SRAM of the EERAM47x16 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -325,14 +328,12 @@ eERRORRESULT EERAM47x16_StoreSRAMtoEEPROM(EERAM47x16 *pComp, bool force, bool wa
  */
 eERRORRESULT EERAM47x16_RecallEEPROMtoSRAM(EERAM47x16 *pComp, bool waitEndOfRecall);
 
-
 /*! @brief Activate the Auto-Store of the EERAM47x16 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM47x16_ActivateAutoStore(EERAM47x16 *pComp);
-
 
 /*! @brief Deactivate the Auto-Store of the EERAM47x16 device
  *
@@ -341,7 +342,6 @@ eERRORRESULT EERAM47x16_ActivateAutoStore(EERAM47x16 *pComp);
  */
 eERRORRESULT EERAM47x16_DeactivateAutoStore(EERAM47x16 *pComp);
 
-
 /*! @brief Set block write protect of the EERAM47x16 device
  *
  * @param[in] *pComp Is the pointed structure of the device to be used
@@ -349,7 +349,6 @@ eERRORRESULT EERAM47x16_DeactivateAutoStore(EERAM47x16 *pComp);
  * @return Returns an #eERRORRESULT value enum
  */
 eERRORRESULT EERAM47x16_SetBlockWriteProtect(EERAM47x16 *pComp, eEERAM47x16_BlockProtect blockProtect);
-
 
 /*! @brief Get the status of the EERAM47x16 device
  *
@@ -361,12 +360,6 @@ inline eERRORRESULT EERAM47x16_GetStatus(EERAM47x16 *pComp, EERAM47x16_Status_Re
 {
   return EERAM47x16_ReadRegister(pComp, &status->Status); // Get the status register
 }
-
-//********************************************************************************************************************
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

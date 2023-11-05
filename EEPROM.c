@@ -105,6 +105,9 @@ static eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const
 static eERRORRESULT __EEPROM_ReadPage(EEPROM *pComp, uint32_t address, uint8_t* data, size_t size);
 // Write data to the EEPROM (DO NOT USE DIRECTLY, use EEPROM_WriteData() instead)
 static eERRORRESULT __EEPROM_WritePage(EEPROM *pComp, uint32_t address, const uint8_t* data, size_t size);
+//-----------------------------------------------------------------------------
+#define EEPROM_TIME_DIFF(begin,end)  ( ((end) >= (begin)) ? ((end) - (begin)) : (UINT32_MAX - ((begin) - (end) - 1)) ) // Works only if time difference is strictly inferior to (UINT32_MAX/2) and call often
+//-----------------------------------------------------------------------------
 
 
 
@@ -130,11 +133,10 @@ eERRORRESULT Init_EEPROM(EEPROM *pComp)
 
   if (pComp->I2CclockSpeed > pComp->Conf->MaxI2CclockSpeed) return ERR__I2C_FREQUENCY_ERROR;
   Error = pI2C->fnI2C_Init(pI2C, pComp->I2CclockSpeed);
-  if (Error != ERR_OK) return Error; // If there is an error while calling fnInterfaceInit() then return the error
+  if (Error != ERR_NONE) return Error; // If there is an error while calling fnInterfaceInit() then return the error
 
-  return (EEPROM_IsReady(pComp) ? ERR_OK : ERR__NO_DEVICE_DETECTED);
+  return (EEPROM_IsReady(pComp) ? ERR_NONE : ERR__NO_DEVICE_DETECTED);
 }
-
 
 
 //=============================================================================
@@ -152,24 +154,20 @@ bool EEPROM_IsReady(EEPROM *pComp)
 # endif
   if (pI2C->fnI2C_Transfer == NULL) return false;
 #endif
-  I2CInterface_Packet PacketDesc =
-  {
-    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_SIMPLE_TRANSFER),
-    I2C_MEMBER(ChipAddr    ) ((pComp->Conf->ChipAddress | pComp->AddrA2A1A0) & I2C_WRITE_ANDMASK),
-    I2C_MEMBER(Start       ) true,
-    I2C_MEMBER(pBuffer     ) NULL,
-    I2C_MEMBER(BufferSize  ) 0,
-    I2C_MEMBER(Stop        ) true,
-  };
-  return (pI2C->fnI2C_Transfer(pI2C, &PacketDesc) == ERR_OK); // Send only the chip address and get the Ack flag
+  I2CInterface_Packet PacketDesc = I2C_INTERFACE8_NO_DATA_DESC((pComp->Conf->ChipAddress | pComp->AddrA2A1A0) & I2C_WRITE_ANDMASK);
+  return (pI2C->fnI2C_Transfer(pI2C, &PacketDesc) == ERR_NONE); // Send only the chip address and get the Ack flag
 }
+
+//-----------------------------------------------------------------------------
 
 
 
 
 
 //**********************************************************************************************************************************************************
-// Write EEPROM address to device (DO NOT USE DIRECTLY)
+//=============================================================================
+// [STATIC] Write EEPROM address to device (DO NOT USE DIRECTLY)
+//=============================================================================
 eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const eI2C_TransferType transferType)
 {
 #ifdef CHECK_NULL_PARAM
@@ -193,7 +191,7 @@ eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const eI2C_T
   //--- Send the address ---
   I2CInterface_Packet PacketDesc =
   {
-    I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType),
+    I2C_MEMBER(Config.Value) I2C_BLOCKING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType),
     I2C_MEMBER(ChipAddr    ) (pConf->ChipAddress | (pComp->AddrA2A1A0 & ~AddrTypeAx) | ((address >> (8 * AddrBytes - 1)) & AddrTypeAx)) & I2C_WRITE_ANDMASK, // Generate chip address
     I2C_MEMBER(Start       ) true,
     I2C_MEMBER(pBuffer     ) &Address[0],
@@ -207,11 +205,9 @@ eERRORRESULT __EEPROM_WriteAddress(EEPROM *pComp, uint32_t address, const eI2C_T
 }
 
 
-
-
-
-//**********************************************************************************************************************************************************
-// Read data from the EEPROM (DO NOT USE DIRECTLY, use EEPROM_ReadData() instead)
+//=============================================================================
+// [STATIC] Read data from the EEPROM (DO NOT USE DIRECTLY, use EEPROM_ReadData() instead)
+//=============================================================================
 eERRORRESULT __EEPROM_ReadPage(EEPROM *pComp, uint32_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
@@ -225,22 +221,15 @@ eERRORRESULT __EEPROM_ReadPage(EEPROM *pComp, uint32_t address, uint8_t* data, s
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > pComp->Conf->PageSize) return ERR__OUT_OF_RANGE;
+  const uint8_t ChipAddrR = ((pComp->Conf->ChipAddress | pComp->AddrA2A1A0) | I2C_READ_ORMASK);
   eERRORRESULT Error;
 
   //--- Read the page ---
   Error = __EEPROM_WriteAddress(pComp, address, I2C_WRITE_THEN_READ_FIRST_PART); // Start a write at address with the device
-  if (Error == ERR_OK)                                                           // If there is no error while writing address then
+  if (Error == ERR_NONE)                                                         // If there is no error while writing address then
   {
-    I2CInterface_Packet PacketDesc =
-    {
-      I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_WRITE_THEN_READ_SECOND_PART),
-      I2C_MEMBER(ChipAddr    ) ((pComp->Conf->ChipAddress | pComp->AddrA2A1A0) | I2C_READ_ORMASK),
-      I2C_MEMBER(Start       ) true,
-      I2C_MEMBER(pBuffer     ) data,
-      I2C_MEMBER(BufferSize  ) size,
-      I2C_MEMBER(Stop        ) true,
-    };
-    Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc); // Restart a read transfer, get the data and stop transfer
+    I2CInterface_Packet DataPacketDesc = I2C_INTERFACE8_RX_DATA_DESC(ChipAddrR, true, data, size, true, I2C_WRITE_THEN_READ_SECOND_PART);
+    Error = pI2C->fnI2C_Transfer(pI2C, &DataPacketDesc);                         // Restart a read transfer, get the data and stop transfer
   }
   return Error;
 }
@@ -264,31 +253,35 @@ eERRORRESULT EEPROM_ReadData(EEPROM *pComp, uint32_t address, uint8_t* data, siz
   //--- Cut data to read into pages ---
   while (size > 0)
   {
-    PageRemData = pConf->PageSize - (address & (pConf->PageSize - 1));     // Get how many bytes remain in the current page
-    PageRemData = (size < PageRemData ? size : PageRemData);               // Get the least remaining bytes to read between remain size and remain in page
+    PageRemData = pConf->PageSize - (address & (pConf->PageSize - 1));                        // Get how many bytes remain in the current page
+    PageRemData = (size < PageRemData ? size : PageRemData);                                  // Get the least remaining bytes to read between remain size and remain in page
 
     //--- Read with timeout ---
-    uint32_t Timeout = pComp->fnGetCurrentms() + pConf->PageWriteTime + 1; // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+    uint32_t StartTime = pComp->fnGetCurrentms();                                             // Start the timeout
     while (true)
     {
-      Error = __EEPROM_ReadPage(pComp, address, data, PageRemData);        // Read data from a page
-      if (Error == ERR_OK) break;                                          // All went fine, continue the data sending
-      if (Error != ERR__NOT_READY) return Error;                           // If there is an error while calling __EEPROM_WritePage() then return the error
-      if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT;  // Timout ? return the error
+      Error = __EEPROM_ReadPage(pComp, address, data, PageRemData);                           // Read data from a page
+      if (Error == ERR_NONE) break;                                                           // All went fine, continue the data sending
+      if (Error != ERR__NOT_READY) return Error;                                              // If there is an error while calling __EEPROM_WritePage() then return the error
+      if (EEPROM_TIME_DIFF(StartTime, pComp->fnGetCurrentms()) > (pConf->PageWriteTime + 1u)) // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+      {
+        return ERR__DEVICE_TIMEOUT;                                                           // Timeout? return the error
+      }
     }
     address += PageRemData;
     data += PageRemData;
     size -= PageRemData;
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
+//-----------------------------------------------------------------------------
 
 
 
-
-//**********************************************************************************************************************************************************
-// Write data to the EEPROM (DO NOT USE DIRECTLY, use EEPROM_ReadData() instead)
+//=============================================================================
+// [STATIC] Write data to the EEPROM (DO NOT USE DIRECTLY, use EEPROM_WriteData() instead)
+//=============================================================================
 eERRORRESULT __EEPROM_WritePage(EEPROM *pComp, uint32_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
@@ -302,23 +295,15 @@ eERRORRESULT __EEPROM_WritePage(EEPROM *pComp, uint32_t address, const uint8_t* 
   if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
 #endif
   if (size > pComp->Conf->PageSize) return ERR__OUT_OF_RANGE;
+  const uint8_t ChipAddrW = ((pComp->Conf->ChipAddress | pComp->AddrA2A1A0) & I2C_WRITE_ANDMASK);
   eERRORRESULT Error;
-  uint8_t* pData = (uint8_t*)data;
 
   //--- Write the page ---
   Error = __EEPROM_WriteAddress(pComp, address, I2C_WRITE_THEN_WRITE_FIRST_PART); // Start a write at address with the device
-  if (Error == ERR_OK)                                                            // If there is no error while writing address then
+  if (Error == ERR_NONE)                                                          // If there is no error while writing address then
   {
-    I2CInterface_Packet PacketDesc =
-    {
-      I2C_MEMBER(Config.Value) I2C_NO_POLLING | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(I2C_WRITE_THEN_WRITE_SECOND_PART),
-      I2C_MEMBER(ChipAddr    ) 0,     // Chip address will not be used
-      I2C_MEMBER(Start       ) false,
-      I2C_MEMBER(pBuffer     ) pData,
-      I2C_MEMBER(BufferSize  ) size,
-      I2C_MEMBER(Stop        ) true,
-    };
-    Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc); // Continue the transfer by sending the data and stop transfer
+    I2CInterface_Packet DataPacketDesc = I2C_INTERFACE8_TX_DATA_DESC(ChipAddrW, false, data, size, true, I2C_WRITE_THEN_WRITE_SECOND_PART);
+    Error = pI2C->fnI2C_Transfer(pI2C, &DataPacketDesc);                          // Continue the transfer by sending the data and stop transfer
   }
   return Error;
 }
@@ -334,33 +319,34 @@ eERRORRESULT EEPROM_WriteData(EEPROM *pComp, uint32_t address, const uint8_t* da
   if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
   if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
 #endif
-  eERRORRESULT Error;
-  size_t PageRemData;
   const EEPROM_Conf* const pConf = pComp->Conf;
   if ((address + size) > pConf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
-  uint32_t Timeout;
-  uint8_t* pData = (uint8_t*)data;
+  eERRORRESULT Error;
+  size_t PageRemData;
 
   //--- Cut data to write into pages ---
   while (size > 0)
   {
-    PageRemData = pConf->PageSize - (address & (pConf->PageSize - 1));    // Get how many bytes remain in the current page
-    PageRemData = (size < PageRemData ? size : PageRemData);              // Get the least remaining bytes to write between remain size and remain in page
+    PageRemData = pConf->PageSize - (address & (pConf->PageSize - 1));                        // Get how many bytes remain in the current page
+    PageRemData = (size < PageRemData ? size : PageRemData);                                  // Get the least remaining bytes to write between remain size and remain in page
 
     //--- Write with timeout ---
-    Timeout = pComp->fnGetCurrentms() + pConf->PageWriteTime + 1;         // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+    uint32_t StartTime = pComp->fnGetCurrentms();                                             // Start the timeout
     while (true)
     {
-      Error = __EEPROM_WritePage(pComp, address, pData, PageRemData);     // Write data to a page
-      if (Error == ERR_OK) break;                                         // All went fine, continue the data sending
-      if (Error != ERR__NOT_READY) return Error;                          // If there is an error while calling __EEPROM_WritePage() then return the error
-      if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
+      Error = __EEPROM_WritePage(pComp, address, data, PageRemData);                          // Write data to a page
+      if (Error == ERR_NONE) break;                                                           // All went fine, continue the data sending
+      if (Error != ERR__NOT_READY) return Error;                                              // If there is an error while calling __EEPROM_WritePage() then return the error
+      if (EEPROM_TIME_DIFF(StartTime, pComp->fnGetCurrentms()) > (pConf->PageWriteTime + 1u)) // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+      {
+        return ERR__DEVICE_TIMEOUT;                                                           // Timeout? return the error
+      }
     }
     address += PageRemData;
-    pData += PageRemData;
-    size  -= PageRemData;
+    data += PageRemData;
+    size -= PageRemData;
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
 
 
@@ -371,20 +357,17 @@ eERRORRESULT EEPROM_WaitEndOfWrite(EEPROM *pComp)
 {
   //--- Write with timeout ---
   const EEPROM_Conf* const pConf = pComp->Conf;
-  uint32_t Timeout = pComp->fnGetCurrentms() + pConf->PageWriteTime + 1; // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+  uint32_t StartTime = pComp->fnGetCurrentms();                                             // Start the timeout
   while (true)
   {
-    if (EEPROM_IsReady(pComp)) break;                                    // Wait the end of write, and exit if all went fine
-    if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT;  // Timout? return the error
+    if (EEPROM_IsReady(pComp)) break;                                                       // Wait the end of write, and exit if all went fine
+    if (EEPROM_TIME_DIFF(StartTime, pComp->fnGetCurrentms()) > (pConf->PageWriteTime + 1u)) // Wait at least PageWriteTime + 1ms because GetCurrentms can be 1 cycle before the new ms
+    {
+      return ERR__DEVICE_TIMEOUT;                                                           // Timeout? return the error
+    }
   }
-  return ERR_OK;
+  return ERR_NONE;
 }
-
-
-
-
-
-
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus
