@@ -1,9 +1,9 @@
 /*!*****************************************************************************
  * @file    I2C_Interface.h
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.0.0
- * @date    02/10/2021
- * @brief   I2C interface for driver
+ * @version 1.1.1
+ * @date    18/11/2023
+ * @brief   I2C interface for drivers
  * @details This I2C interface definitions for all the https://github.com/Emandhal
  * drivers and developments
  ******************************************************************************/
@@ -31,6 +31,8 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 1.1.1    Add STM32cubeIDE
+ * 1.1.0    Add Arduino
  * 1.0.0    Release version
  *****************************************************************************/
 #ifndef __I2C_INTERFACE_H_INC
@@ -52,9 +54,14 @@ extern "C" {
 #  define I2C_MEMBER(name)  .name =
 #endif
 //-----------------------------------------------------------------------------
+#ifdef USE_HAL_DRIVER // STM32cubeIDE
+#  include <Main.h> // To get the MCU general defines
+#endif
+//-----------------------------------------------------------------------------
 
-#define I2C_READ_ORMASK    ( 0x01u ) //!< Standard I2C LSB bit to set
-#define I2C_WRITE_ANDMASK  ( 0xFEu ) //!< Standard I2C bit mask which clear the LSB
+#define I2C_READ_ORMASK     ( 0x01u ) //!< Standard I2C LSB bit to set
+#define I2C_WRITE_ANDMASK   ( 0xFEu ) //!< Standard I2C bit mask which clear the LSB
+#define I2C_ONLY_ADDR_Mask  ( 0xFEu ) //!< Only get the device address and remove the read/write bit
 
 //-----------------------------------------------------------------------------
 
@@ -185,7 +192,7 @@ typedef struct
                            | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
     I2C_MEMBER(ChipAddr    ) (chipAddr) & I2C_WRITE_ANDMASK,                                                       \
     I2C_MEMBER(Start       ) (start),                                                                              \
-    I2C_MEMBER(pBuffer     ) (uint8_t*)(txData),                                                                             \
+    I2C_MEMBER(pBuffer     ) (uint8_t*)(txData),                                                                   \
     I2C_MEMBER(BufferSize  ) (size),                                                                               \
     I2C_MEMBER(Stop        ) (stop),                                                                               \
   }
@@ -197,7 +204,7 @@ typedef struct
                            | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
     I2C_MEMBER(ChipAddr    ) (chipAddr) | I2C_READ_ORMASK,                                                         \
     I2C_MEMBER(Start       ) (start),                                                                              \
-    I2C_MEMBER(pBuffer     ) (uint8_t*)(rxData),                                                                             \
+    I2C_MEMBER(pBuffer     ) (uint8_t*)(rxData),                                                                   \
     I2C_MEMBER(BufferSize  ) (size),                                                                               \
     I2C_MEMBER(Stop        ) (stop),                                                                               \
   }
@@ -215,7 +222,6 @@ typedef struct
 typedef struct I2C_Interface I2C_Interface; //! Typedef of I2C_Interface device object structure
 
 //-----------------------------------------------------------------------------
-
 
 /*! @brief Interface function for I2C peripheral initialization
  *
@@ -242,6 +248,19 @@ typedef eERRORRESULT (*I2CTransferPacket_Func)(I2C_Interface *pIntDev, I2CInterf
 
 //-----------------------------------------------------------------------------
 
+#ifdef ARDUINO
+
+#elif defined(USE_HAL_DRIVER) //#ifdef STM32cubeIDE
+//! @brief STM32 HAL I2C interface container structure
+struct I2C_Interface
+{
+  I2C_HandleTypeDef* pHI2C;              //!< Pointer to I2C handle Structure definition
+  I2CInit_Func fnI2C_Init;               //!< This function will be called at driver initialization to configure the interface driver
+  I2CTransferPacket_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+  uint32_t I2Ctimeout;                   //!< I2C timeout
+};
+
+#else
 //! @brief I2C interface container structure
 struct I2C_Interface
 {
@@ -251,6 +270,39 @@ struct I2C_Interface
   I2CTransferPacket_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
   uint8_t Channel;                       //!< I2C channel of the interface device
 };
+#endif //#ifdef ARDUINO && USE_HAL_DRIVER
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
+//********************************************************************************************************************
+// I2C Interface functions prototypes
+//********************************************************************************************************************
+
+/*! @brief Function for interface I2C initialization
+ *
+ * This function will be called at driver initialization to configure the interface driver
+ * @param[in] *pIntDev Is the I2C interface container structure used for the interface initialization
+ * @param[in] sclFreq Is the SCL frequency in Hz to set at the interface initialization
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT Interface_I2Cinit(I2C_Interface* pIntDev, const uint32_t sclFreq);
+
+/*! @brief Function interface for I2C transfer
+ *
+ * This function will be called when the driver needs to transfer data over the I2C communication with the device
+ * The packet gives the possibility to set the address/command where the data will be stored/recall.
+ * @note Concerning the endianness change, at the #I2CTransferPacket_Func call, the driver ask for a transform if possible. If the I2C/DMA drivers can perform this in the interface function, it need to set the transform result at the same transform value.
+ * If it can't perform the transformation, set the endian result to I2C_NO_ENDIAN_CHANGE and the driver will do it. This can discharge the driver and CPU to perform the transformation. Some DMA can perform it with data/block stride.
+ * @warning A I2CInit_Func() must be called before using this function
+ * @param[in] *pIntDev Is the I2C interface container structure used for the communication
+ * @param[in] *pPacketConf Is the packet description to transfer through I2C
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT Interface_I2Ctransfer(I2C_Interface *pIntDev, I2CInterface_Packet* const pPacketDesc);
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus

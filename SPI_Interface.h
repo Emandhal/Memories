@@ -3,7 +3,7 @@
  * @author  Fabien 'Emandhal' MAILLY
  * @version 1.1.0
  * @date    27/08/2023
- * @brief   SPI interface for driver
+ * @brief   SPI interface for drivers
  * @details This SPI interface definitions for all the https://github.com/Emandhal
  * drivers and developments
  ******************************************************************************/
@@ -319,6 +319,36 @@ struct SPI_Interface
   uint8_t Channel;                       //!< SPI channel of the interface device in case of multiple virtual SPI channels (This is not the ChipSelect)
 };
 #endif //#ifdef ARDUINO && USE_HAL_DRIVER
+
+//-----------------------------------------------------------------------------
+
+
+
+
+
+//********************************************************************************************************************
+// SPI Interface functions prototypes
+//********************************************************************************************************************
+
+/*! @brief Function for interface SPI initialization
+ *
+ * This function will be called at driver initialization to configure the interface driver
+ * @param[in] *pIntDev Is the SPI interface container structure used for the interface initialization
+ * @param[in] chipSelect Is the Chip Select index to use for the SPI/Dual-SPI/Quad-SPI initialization
+ * @param[in] mode Is the mode of the SPI to configure
+ * @param[in] sckFreq Is the SCK frequency in Hz to set at the interface initialization
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT Interface_SPIinit(SPI_Interface *pIntDev, uint8_t chipSelect, eSPIInterface_Mode mode, const uint32_t sckFreq);
+
+/*! @brief Function interface for SPI transfer
+ *
+ * This function will be called at driver read/write data from/to the interface driver
+ * @param[in] *pIntDev Is the SPI interface container structure used for the communication
+ * @param[in] *pPacketConf Is the packet description to transfer through SPI
+ * @return Returns an #eERRORRESULT value enum
+ */
+eERRORRESULT Interface_SPItransfer(SPI_Interface *pIntDev, SPIInterface_Packet* const pPacketDesc);
 
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus
