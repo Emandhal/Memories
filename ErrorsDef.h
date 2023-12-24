@@ -216,6 +216,9 @@ static const char* const ERRCONTEXT_ContextStrings[] =
     X(ERR__NOT_INITIALIZED     ,      , "Not initialized"                                       ) \
     X(ERR__BAD_ENDIANNESS      ,      , "Bad endianness"                                        ) \
     X(ERR__INVALID_DATA        ,      , "Invalid data"                                          ) \
+    X(ERR__NOT_ENOUGH_SPACE    ,      , "Not enough free space"                                 ) \
+    X(ERR__GENERAL_ERROR       ,      , "General error"                                         ) \
+    X(ERR__COPROCESSOR_ERROR   ,      , "Co-processor error"                                    ) \
 /*  // Device mode                                                                              */\
     X(ERR__NOT_IN_SLEEP_MODE   , =  90, "Operation impossible in sleep mode"                    ) \
     X(ERR__ALREADY_IN_SLEEP    ,      , "Already in sleep mode"                                 ) \
@@ -275,6 +278,7 @@ static const char* const ERRCONTEXT_ContextStrings[] =
     X(ERR__I2C_OTHER_BUSY      ,      , "I2C busy by other transfer"                            ) \
 /*  // DMA errors                                                                               */\
     X(ERR__DMA_NOT_CONFIGURED  , = 225, "DMA not configured"                                    ) \
+    X(ERR__DMA_PARAMETER_ERROR ,      , "DMA parameter error"                                   ) \
     X(ERR__DMA_ERROR           ,      , "DMA error"                                             ) \
     X(ERR__DMA_OVERFLOW_ERROR  ,      , "DMA overflow error"                                    ) \
     X(ERR__DMA_UNDERFLOW_ERROR ,      , "DMA underflow error"                                   ) \

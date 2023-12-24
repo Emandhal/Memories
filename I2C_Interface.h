@@ -48,8 +48,12 @@
 #include "ErrorsDef.h"
 //-----------------------------------------------------------------------------
 #ifdef __cplusplus
-extern "C" {
+#  ifdef ARDUINO
+#    include <Arduino.h>
+#    include <Wire.h>
+#  endif
 #  define I2C_MEMBER(name)
+extern "C" {
 #else
 #  define I2C_MEMBER(name)  .name =
 #endif
@@ -80,7 +84,7 @@ typedef union I2C_Conf
   struct
   {
     uint32_t TransferType   :  3; //!<  0- 2 - This is the transfer type of the packet
-    uint32_t IsNonBlocking  :  1; //!<  3    - Non blocking use for the I2C: '1' = The driver ask for a non-blocking tansfer (with DMA or interrupt transfer) ; '0' = The driver ask for a blocking transfer
+    uint32_t IsNonBlocking  :  1; //!<  3    - Non-blocking use for the I2C: '1' = The driver ask for a non-blocking transfer (with DMA or interrupt transfer) ; '0' = The driver ask for a blocking transfer
     uint32_t EndianResult   :  3; //!<  4- 6 - If the transfer changes the endianness, the peripheral that do the transfer will say it here
     uint32_t EndianTransform:  3; //!<  7- 9 - The driver that asks for the transfer needs an endian change from little to big-endian or big to little-endian
     uint32_t TransactionInc :  6; //!< 10-15 - Current transaction number (managed by the I2C+DMA driver). When a new DMA transaction is initiate, set this value to '0', the I2C+DMA driver will return an incremental number. This is for knowing that the transaction has been accepted or the bus is busy with another transaction
@@ -249,6 +253,13 @@ typedef eERRORRESULT (*I2CTransferPacket_Func)(I2C_Interface *pIntDev, I2CInterf
 //-----------------------------------------------------------------------------
 
 #ifdef ARDUINO
+//! @brief Arduino I2C interface container structure
+struct I2C_Interface
+{
+  TwoWire& _I2Cclass;                    //!< Arduino I2C class
+  I2CInit_Func fnI2C_Init;               //!< This function will be called at driver initialization to configure the interface driver
+  I2CTransferPacket_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
+};
 
 #elif defined(USE_HAL_DRIVER) //#ifdef STM32cubeIDE
 //! @brief STM32 HAL I2C interface container structure

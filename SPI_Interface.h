@@ -80,7 +80,7 @@ typedef union SPI_Conf
     uint16_t UseDummyByte   : 1; //!<  0    - Use dummy byte for receiving: 'true' = use the DummyByte member for all bytes to receive ; 'false' = Use TxData for all bytes to receive
     uint16_t BlockInterrupts: 1; //!<  1    - Block the interrupts for this transfer: 'true' = disable all interrupts before CS low and enable all interrupts after CS high ; 'false' = no enable and/or disable of interrupts
     uint16_t                : 1; //!<  2
-    uint16_t IsNonBlocking  : 1; //!<  3    - Non blocking use for the SPI: '1' = The driver ask for a non-blocking tansfer (with DMA or interrupt transfer) ; '0' = The driver ask for a blocking transfer
+    uint16_t IsNonBlocking  : 1; //!<  3    - Non-blocking use for the SPI: '1' = The driver ask for a non-blocking transfer (with DMA or interrupt transfer) ; '0' = The driver ask for a blocking transfer
     uint16_t EndianResult   : 3; //!<  4- 6 - If the transfer changes the endianness, the peripheral that do the transfer will say it here
     uint16_t EndianTransform: 3; //!<  7- 9 - The driver that asks for the transfer needs an endian change from little to big-endian or big to little-endian
     uint16_t TransactionInc : 6; //!< 10-15 - Current the transaction number (managed by the SPI+DMA driver). When a new DMA transaction is initiate, set this value to '0', the SPI+DMA driver will return an incremental number. This is for knowing that the transaction has been accepted or the bus is busy with another transaction
@@ -209,55 +209,63 @@ typedef struct SPI_Interface SPI_Interface; //! Typedef of SPI_Interface device 
 #define SPI_PIN_COUNT_SET(value)  (((uint16_t)(value) << SPI_PIN_COUNT_Pos) & SPI_PIN_COUNT_Mask) //!< Set data pin count of the SPI communication
 #define SPI_PIN_COUNT_GET(value)  (((uint16_t)(value) & SPI_PIN_COUNT_Mask) >> SPI_PIN_COUNT_Pos) //!< Get data pin count of the SPI communication
 
-#define SPI_CPOL_Pos         7
-#define SPI_CPOL_Mask        (0x1u << SPI_CPOL_Pos)
-#define SPI_CPOL_SET(value)  (((uint16_t)(value) << SPI_CPOL_Pos) & SPI_CPOL_Mask) //!< Set clock polarity
-#define SPI_CPOL_GET(value)  (((uint16_t)(value) & SPI_CPOL_Mask) >> SPI_CPOL_Pos) //!< Get clock polarity
+#define SPI_LSB_FIRST        ( 1u << 5 ) //!< SPI send with LSB first
+#define SPI_MSB_FIRST        ( 0u << 5 ) //!< SPI send with MSB first
+
 #define SPI_CPHA_Pos         6
 #define SPI_CPHA_Mask        (0x1u << SPI_CPHA_Pos)
-#define SPI_CPHA_SET(value)  (((uint16_t)(value) << SPI_CPHA_Pos) & SPI_CPHA_Mask) //!< Set clock phase
-#define SPI_CPHA_GET(value)  (((uint16_t)(value) & SPI_CPHA_Mask) >> SPI_CPHA_Pos) //!< Get clock phase
+#define SPI_CPHA_SET(value)  (((uint8_t)(value) << SPI_CPHA_Pos) & SPI_CPHA_Mask) //!< Set clock phase
+#define SPI_CPHA_GET(value)  (((uint8_t)(value) & SPI_CPHA_Mask) >> SPI_CPHA_Pos) //!< Get clock phase
+#define SPI_CPOL_Pos         7
+#define SPI_CPOL_Mask        (0x1u << SPI_CPOL_Pos)
+#define SPI_CPOL_SET(value)  (((uint8_t)(value) << SPI_CPOL_Pos) & SPI_CPOL_Mask) //!< Set clock polarity
+#define SPI_CPOL_GET(value)  (((uint8_t)(value) & SPI_CPOL_Mask) >> SPI_CPOL_Pos) //!< Get clock polarity
 
-#define SPI_COMM_MODE_Mask  ( SPI_CPOL_Mask | SPI_CPHA_Mask )
-#define SPI_COMM_MODE0      ( SPI_CPOL_SET(0) | SPI_CPHA_SET(0) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 0 ; Clock phase (CPHA) = 0 ; Clock edge (CKE/NCPHA) = 1
-#define SPI_COMM_MODE1      ( SPI_CPOL_SET(0) | SPI_CPHA_SET(1) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 0 ; Clock phase (CPHA) = 1 ; Clock edge (CKE/NCPHA) = 0
-#define SPI_COMM_MODE2      ( SPI_CPOL_SET(1) | SPI_CPHA_SET(0) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 1 ; Clock phase (CPHA) = 0 ; Clock edge (CKE/NCPHA) = 1
-#define SPI_COMM_MODE3      ( SPI_CPOL_SET(1) | SPI_CPHA_SET(1) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 1 ; Clock phase (CPHA) = 1 ; Clock edge (CKE/NCPHA) = 0
-
-#define SPI_LSB_FIRST       ( 1u << 15 ) //!< SPI send with LSB first
-#define SPI_MSB_FIRST       ( 0u << 15 ) //!< SPI send with MSB first
+#define SPI_COMM_MODE_Mask   ( SPI_CPOL_Mask | SPI_CPHA_Mask )
+#define SPI_COMM_MODE0       ( SPI_CPOL_SET(0) | SPI_CPHA_SET(0) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 0 ; Clock phase (CPHA) = 0 ; Clock edge (CKE/NCPHA) = 1
+#define SPI_COMM_MODE1       ( SPI_CPOL_SET(0) | SPI_CPHA_SET(1) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 0 ; Clock phase (CPHA) = 1 ; Clock edge (CKE/NCPHA) = 0
+#define SPI_COMM_MODE2       ( SPI_CPOL_SET(1) | SPI_CPHA_SET(0) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 1 ; Clock phase (CPHA) = 0 ; Clock edge (CKE/NCPHA) = 1
+#define SPI_COMM_MODE3       ( SPI_CPOL_SET(1) | SPI_CPHA_SET(1) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 1 ; Clock phase (CPHA) = 1 ; Clock edge (CKE/NCPHA) = 0
 
 //! SPI bit width and mode enumerator
 typedef enum
 {
-  STD_SPI_MODE0            = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 0) and data MSB first
-  STD_SPI_MODE1            = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 1) and data MSB first
-  STD_SPI_MODE2            = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 2) and data MSB first
-  STD_SPI_MODE3            = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 3) and data MSB first
-  DUAL_SPI_MODE0           = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 0) and data MSB first
-  DUAL_SPI_MODE1           = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 1) and data MSB first
-  DUAL_SPI_MODE2           = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 2) and data MSB first
-  DUAL_SPI_MODE3           = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 3) and data MSB first
-  QUAD_SPI_MODE0           = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 0) and data MSB first
-  QUAD_SPI_MODE1           = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 1) and data MSB first
-  QUAD_SPI_MODE2           = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 2) and data MSB first
-  QUAD_SPI_MODE3           = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 3) and data MSB first
-  STD_SPI_MODE0_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 0) and data LSB first
-  STD_SPI_MODE1_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 1) and data LSB first
-  STD_SPI_MODE2_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 2) and data LSB first
-  STD_SPI_MODE3_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 3) and data LSB first
-  DUAL_SPI_MODE0_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 0) and data LSB first
-  DUAL_SPI_MODE1_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 1) and data LSB first
-  DUAL_SPI_MODE2_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 2) and data LSB first
-  DUAL_SPI_MODE3_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 3) and data LSB first
-  QUAD_SPI_MODE0_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 0) and data LSB first
-  QUAD_SPI_MODE1_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 1) and data LSB first
-  QUAD_SPI_MODE2_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 2) and data LSB first
-  QUAD_SPI_MODE3_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 3) and data LSB first
+  SPI_3WIRE_MODE0           = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 0) and data MSB first
+  SPI_3WIRE_MODE1           = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 1) and data MSB first
+  SPI_3WIRE_MODE2           = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 2) and data MSB first
+  SPI_3WIRE_MODE3           = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 3) and data MSB first
+  STD_SPI_MODE0             = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 0) and data MSB first
+  STD_SPI_MODE1             = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 1) and data MSB first
+  STD_SPI_MODE2             = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 2) and data MSB first
+  STD_SPI_MODE3             = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 3) and data MSB first
+  DUAL_SPI_MODE0            = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 0) and data MSB first
+  DUAL_SPI_MODE1            = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 1) and data MSB first
+  DUAL_SPI_MODE2            = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 2) and data MSB first
+  DUAL_SPI_MODE3            = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 3) and data MSB first
+  QUAD_SPI_MODE0            = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 0) and data MSB first
+  QUAD_SPI_MODE1            = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 1) and data MSB first
+  QUAD_SPI_MODE2            = SPI_MSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 2) and data MSB first
+  QUAD_SPI_MODE3            = SPI_MSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 3) and data MSB first
+  SPI_3WIRE_MODE0_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 0) and data LSB first
+  SPI_3WIRE_MODE1_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 1) and data LSB first
+  SPI_3WIRE_MODE2_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 2) and data LSB first
+  SPI_3WIRE_MODE3_LSB_FIRST = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 3) and data LSB first
+  STD_SPI_MODE0_LSB_FIRST   = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 0) and data LSB first
+  STD_SPI_MODE1_LSB_FIRST   = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 1) and data LSB first
+  STD_SPI_MODE2_LSB_FIRST   = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 2) and data LSB first
+  STD_SPI_MODE3_LSB_FIRST   = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(1), //!< Communication with device using 1 bit per clock (Standard SPI mode 3) and data LSB first
+  DUAL_SPI_MODE0_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 0) and data LSB first
+  DUAL_SPI_MODE1_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 1) and data LSB first
+  DUAL_SPI_MODE2_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 2) and data LSB first
+  DUAL_SPI_MODE3_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(2), //!< Communication with device using 2 bits per clock (Dual-SPI mode 3) and data LSB first
+  QUAD_SPI_MODE0_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 0) and data LSB first
+  QUAD_SPI_MODE1_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 1) and data LSB first
+  QUAD_SPI_MODE2_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 2) and data LSB first
+  QUAD_SPI_MODE3_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 3) and data LSB first
 } eSPIInterface_Mode;
 
 #define SPI_IS_LSB_FIRST(value)  (((value) & SPI_LSB_FIRST) > 0) //!< Is the value has the #SPI_LSB_FIRST bit defined?
-#define SPI_MODE_GET(value)      (((value) & SPI_CPHA_Pos) >> SPI_CPHA_Pos) //!< Get the SPI mode value
+#define SPI_MODE_GET(value)      (((value) & SPI_COMM_MODE_Mask) >> SPI_CPHA_Pos) //!< Get the SPI mode value
 
 //-----------------------------------------------------------------------------
 
