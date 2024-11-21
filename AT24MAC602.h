@@ -133,12 +133,22 @@ typedef union __AT24MAC602_PACKED__ AT24MAC602_MAC_EUI64
     uint8_t       : 6; //!< 2-7
   } Bits;
 } AT24MAC602_MAC_EUI64;
-AT24MAC602_UNPACKITEM
+AT24MAC602_UNPACKITEM;
 AT24MAC602_CONTROL_ITEM_SIZE(AT24MAC602_MAC_EUI64, EUI64_LEN);
 
 //-----------------------------------------------------------------------------
 
 #define AT24MAC602_SERIALNUMBER_LEN  ( 128 / 8 ) //!< The Serial Number length is 128 bits thus 16 bytes
+
+//! 128-bits Serial Number
+AT24MAC602_PACKITEM
+typedef union __AT24MAC602_PACKED__ AT24MAC602_SN
+{
+  unsigned int Uint32[AT24MAC602_SERIALNUMBER_LEN / sizeof(unsigned int)];
+  uint8_t      Bytes[AT24MAC602_SERIALNUMBER_LEN  / sizeof(uint8_t)];
+} AT24MAC602_SN;
+AT24MAC602_UNPACKITEM;
+AT24MAC602_CONTROL_ITEM_SIZE(AT24MAC602_SN, AT24MAC602_SERIALNUMBER_LEN);
 
 //-----------------------------------------------------------------------------
 

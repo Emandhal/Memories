@@ -133,7 +133,7 @@ typedef union __AT24MAC402_PACKED__ AT24MAC402_MAC_EUI48
     uint8_t       : 6; //!< 2-7
   } Bits;
 } AT24MAC402_MAC_EUI48;
-AT24MAC402_UNPACKITEM
+AT24MAC402_UNPACKITEM;
 AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI48, EUI48_LEN);
 
 //-----------------------------------------------------------------------------
@@ -159,12 +159,22 @@ typedef union __AT24MAC402_PACKED__ AT24MAC402_MAC_EUI64
     uint8_t       : 6; //!< 2-7
   } Bits;
 } AT24MAC402_MAC_EUI64;
-AT24MAC402_UNPACKITEM
+AT24MAC402_UNPACKITEM;
 AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_MAC_EUI64, EUI64_LEN);
 
 //-----------------------------------------------------------------------------
 
 #define AT24MAC402_SERIALNUMBER_LEN  ( 128 / 8 ) //!< The Serial Number length is 128 bits thus 16 bytes
+
+//! 128-bits Serial Number
+AT24MAC402_PACKITEM
+typedef union __AT24MAC402_PACKED__ AT24MAC402_SN
+{
+  unsigned int Uint32[AT24MAC402_SERIALNUMBER_LEN / sizeof(unsigned int)];
+  uint8_t      Bytes[AT24MAC402_SERIALNUMBER_LEN  / sizeof(uint8_t)];
+} AT24MAC402_SN;
+AT24MAC402_UNPACKITEM;
+AT24MAC402_CONTROL_ITEM_SIZE(AT24MAC402_SN, AT24MAC402_SERIALNUMBER_LEN);
 
 //-----------------------------------------------------------------------------
 
