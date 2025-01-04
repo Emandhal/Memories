@@ -32,6 +32,7 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 1.2.1    Update error management to add context
  * 1.2.0    Add EEPROM genericness
  * 1.1.0    I2C interface rework
  * 1.0.0    Release version
