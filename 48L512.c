@@ -11,6 +11,13 @@
 //-----------------------------------------------------------------------------
 #include "48L512.h"
 //-----------------------------------------------------------------------------
+#ifdef USE_ERROR_CONTEXT
+#  define UNIT_ERR_CONTEXT  ERRCONTEXT__48L512 // Error context of this unit
+#else
+#  define ERR_GENERATE(error)   error
+#  define ERR_ERROR_Get(error)  error
+#endif
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 #include <cstdint>
 extern "C" {
@@ -95,19 +102,19 @@ static eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t op
 eERRORRESULT Init_EERAM48L512(EERAM48L512 *pComp)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Init == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   pComp->InternalConfig = 0;
 
   //--- Configure SPI ---
-  if (pComp->SPIclockSpeed > EERAM48L512_SPICLOCK_MAX) return ERR__SPI_FREQUENCY_ERROR;
+  if (pComp->SPIclockSpeed > EERAM48L512_SPICLOCK_MAX) return ERR_GENERATE(ERR__SPI_FREQUENCY_ERROR);
   return pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed);
 }
 
@@ -150,30 +157,21 @@ void __ComputeCRC16IBM3740(uint16_t* pCRC, const uint8_t* data, size_t size)
 eERRORRESULT __EERAM48L512_WriteAddress(EERAM48L512 *pComp, const uint8_t opCode, const uint16_t address, uint16_t* pCRC)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
 
   //--- Create address ---
   uint8_t Address[EERAM48L512_ADDRESS_BYTE_SIZE + 1] = { opCode, (uint8_t)(address >> 8), (uint8_t)(address & 0xFF) };
   if (pCRC != NULL) ComputeCRC16IBM3740(pCRC, &Address[1], sizeof(Address)-1); // Calculate CRC if ask
   //--- Send the address ---
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &Address[0],
-    SPI_MEMBER(RxData      ) NULL,
-    SPI_MEMBER(DataSize    ) ( EERAM48L512_IS_NV_USER_SPACE(opCode) ? 1 : sizeof(Address)),
-    SPI_MEMBER(Terminate   ) false,
-  };
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(&Address[0], ( EERAM48L512_IS_NV_USER_SPACE(opCode) ? 1 : sizeof(Address) ), false);
   return pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Transfer the address
 }
 
@@ -188,16 +186,16 @@ eERRORRESULT __EERAM48L512_WriteAddress(EERAM48L512 *pComp, const uint8_t opCode
 eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, uint16_t address, uint8_t* data, size_t size, bool useCRC)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   eERRORRESULT Error;
 
   //--- Read data ---
@@ -207,31 +205,22 @@ eERRORRESULT __EERAM48L512_ReadData(EERAM48L512 *pComp, const uint8_t opCode, ui
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;    // Remove write enable flag
   if (Error == ERR_NONE)                                            // If there is no error while writing address then
   {
-    SPIInterface_Packet PacketDesc =
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_RX_DATA_WITH_DUMMYBYTE_DESC(0x00, data, size, (useCRC == false));
+    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);                // Continue the transfer by reading the data and stop transfer if no CRC
+    if (useCRC)                                                     // If the CRC computation shall be retreived with the data...
     {
-      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-      SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-      SPI_MEMBER(DummyByte   ) 0x00,
-      SPI_MEMBER(TxData      ) NULL,
-      SPI_MEMBER(RxData      ) data,
-      SPI_MEMBER(DataSize    ) size,
-      SPI_MEMBER(Terminate   ) (useCRC == false),
-    };
-    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);   // Continue the transfer by reading the data and stop transfer if no CRC
-    if (useCRC)                                        // If the CRC computation shall be retreived with the data...
-    {
-      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
-      ComputeCRC16IBM3740(pCRC, data, size);           // Calculate CRC of received data
+      if (Error != ERR_NONE) return Error;                          // If there is an error while calling fnSPI_Transfer() then return the error
+      ComputeCRC16IBM3740(pCRC, data, size);                        // Calculate CRC of received data
       //--- Get the CRC ---
       uint8_t CRCdata[2];
-      PacketDesc.RxData       = &CRCdata[0];
-      PacketDesc.DataSize     = sizeof(CRCdata);
-      PacketDesc.Terminate    = true;
-      Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Continue the transfer by reading the CRC and stop transfer
-      if (Error != ERR_NONE) return Error;             // If there is an error while calling fnSPI_Transfer() then return the error
+      PacketDesc.RxData    = &CRCdata[0];
+      PacketDesc.DataSize  = sizeof(CRCdata);
+      PacketDesc.Terminate = true;
+      Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);              // Continue the transfer by reading the CRC and stop transfer
+      if (Error != ERR_NONE) return Error;                          // If there is an error while calling fnSPI_Transfer() then return the error
       //--- Check the CRC ---
       const uint16_t ReceivedCRC = (((uint16_t)CRCdata[0] << 8) | (uint16_t)CRCdata[1]);
-      if (ReceivedCRC != CRC) return ERR__CRC_ERROR;
+      if (ReceivedCRC != CRC) return ERR_GENERATE(ERR__CRC_ERROR);
     }
   }
   return Error;
@@ -255,11 +244,11 @@ eERRORRESULT EERAM48L512_ReadSRAMData(EERAM48L512 *pComp, uint16_t address, uint
 eERRORRESULT EERAM48L512_ReadSecure(EERAM48L512 *pComp, uint16_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address & EERAM48L512_PAGE_SIZE_MASK) != 0) return ERR__ADDRESS_ALIGNMENT; // Address shall be aligned with EERAM48L512_PAGE_SIZE
-  if ((size % EERAM48L512_PAGE_SIZE) != 0 ) return ERR__BAD_DATA_SIZE;            // Data to write shall be EERAM48L512_PAGE_SIZE
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address & EERAM48L512_PAGE_SIZE_MASK) != 0) return ERR_GENERATE(ERR__ADDRESS_ALIGNMENT); // Address shall be aligned with EERAM48L512_PAGE_SIZE
+  if ((size % EERAM48L512_PAGE_SIZE) != 0 ) return ERR_GENERATE(ERR__BAD_DATA_SIZE);            // Data to write shall be EERAM48L512_PAGE_SIZE
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   eERRORRESULT Error;
 
   //--- Cut data to read into pages ---
@@ -294,32 +283,28 @@ eERRORRESULT EERAM48L512_ReadNVUSData(EERAM48L512 *pComp, uint8_t* data)
 eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
-  SPIInterface_Packet PacketDesc;
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   eERRORRESULT Error;
 
   //--- Check DMA ---
   if (EERAM48L512_IS_DMA_TRANSFER_IN_PROGRESS(pComp->InternalConfig))
   {
     const uint16_t CurrTransactionNumber = EERAM48L512_TRANSACTION_NUMBER_GET(pComp->InternalConfig);
-    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
-    PacketDesc.ChipSelect   = pComp->SPIchipSelect;
-    PacketDesc.DummyByte    = 0x00;
-    PacketDesc.TxData       = NULL;
-    PacketDesc.RxData       = NULL;
-    PacketDesc.DataSize     = 0;
-    PacketDesc.Terminate    = true;
-    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Send only the chip address and get the Ack flag, to return the status of the current transfer
-    if ((Error != ERR__SPI_BUSY) && (Error != ERR__SPI_OTHER_BUSY)) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    SPIInterface_Packet CheckPacketDesc = SPI_INTERFACE_CHECK_DMA_DESC(CurrTransactionNumber);
+    Error = pSPI->fnSPI_Transfer(pSPI, &CheckPacketDesc); // Send only the chip address and get the Ack flag, to return the status of the current transfer
+    if ((ERR_ERROR_Get(Error) != ERR__SPI_BUSY) && (ERR_ERROR_Get(Error) != ERR__SPI_OTHER_BUSY))
+    {
+      pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    }
     return Error;
   }
 
@@ -328,16 +313,10 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;              // Remove write enable flag
   if (Error == ERR_NONE)                                                      // If there is no error while writing address then
   {
-    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
-    PacketDesc.ChipSelect   = pComp->SPIchipSelect;
-    PacketDesc.DummyByte    = 0x00;
-    PacketDesc.TxData       = NULL;
-    PacketDesc.RxData       = data;
-    PacketDesc.DataSize     = size;
-    PacketDesc.Terminate    = true;
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_RX_DATA_DMA_WITH_DUMMYBYTE_DESC(0x00, data, true, size, true);
     Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Restart at first data read transfer, get the data and stop transfer at last data
-    if (Error != ERR__SPI_OTHER_BUSY) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
-    if (Error == ERR__SPI_BUSY) pComp->InternalConfig |= EERAM48L512_DMA_TRANSFER_IN_PROGRESS;
+    if (ERR_ERROR_Get(Error) != ERR__SPI_OTHER_BUSY) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    if (ERR_ERROR_Get(Error) == ERR__SPI_BUSY) pComp->InternalConfig |= EERAM48L512_DMA_TRANSFER_IN_PROGRESS;
     EERAM48L512_TRANSACTION_NUMBER_CLEAR(pComp->InternalConfig);
     pComp->InternalConfig |= EERAM48L512_TRANSACTION_NUMBER_SET(SPI_TRANSACTION_NUMBER_GET(PacketDesc.Config.Value));
   }
@@ -355,16 +334,16 @@ eERRORRESULT EERAM48L512_ReadSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addres
 eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, uint16_t address, const uint8_t* data, size_t size, bool useCRC)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
 
@@ -375,16 +354,7 @@ eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, u
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;    // Remove write enable flag
   if (Error == ERR_NONE)                                            // If there is no error while writing address then
   {
-    SPIInterface_Packet PacketDesc =
-    {
-      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-      SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-      SPI_MEMBER(DummyByte   ) 0x00,
-      SPI_MEMBER(TxData      ) pData,
-      SPI_MEMBER(RxData      ) NULL,
-      SPI_MEMBER(DataSize    ) size,
-      SPI_MEMBER(Terminate   ) (useCRC == false),
-    };
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(pData, size, (useCRC == false));
     Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);   // Continue the transfer by sending the data and stop transfer if no CRC
     if (useCRC)                                        // If the CRC computation shall be sent with the data...
     {
@@ -392,9 +362,9 @@ eERRORRESULT __EERAM48L512_WriteData(EERAM48L512 *pComp, const uint8_t opCode, u
       ComputeCRC16IBM3740(pCRC, pData, size);          // Calculate CRC
       //--- Send the CRC ---
       uint8_t CRCdata[2] = { (uint8_t)(*pCRC >> 8), (uint8_t)(*pCRC & 0xFF) };
-      PacketDesc.TxData       = &CRCdata[0];
-      PacketDesc.DataSize     = sizeof(CRCdata);
-      PacketDesc.Terminate    = true;
+      PacketDesc.TxData    = &CRCdata[0];
+      PacketDesc.DataSize  = sizeof(CRCdata);
+      PacketDesc.Terminate = true;
       Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Continue the transfer by sending the CRC and stop transfer
     }
   }
@@ -419,11 +389,11 @@ eERRORRESULT EERAM48L512_WriteSRAMData(EERAM48L512 *pComp, uint16_t address, con
 eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address & EERAM48L512_PAGE_SIZE_MASK) != 0) return ERR__ADDRESS_ALIGNMENT; // Address shall be aligned with EERAM48L512_PAGE_SIZE
-  if ((size % EERAM48L512_PAGE_SIZE) != 0 ) return ERR__BAD_DATA_SIZE;            // Data to write shall be EERAM48L512_PAGE_SIZE
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address & EERAM48L512_PAGE_SIZE_MASK) != 0) return ERR_GENERATE(ERR__ADDRESS_ALIGNMENT); // Address shall be aligned with EERAM48L512_PAGE_SIZE
+  if ((size % EERAM48L512_PAGE_SIZE) != 0 ) return ERR_GENERATE(ERR__BAD_DATA_SIZE);            // Data to write shall be EERAM48L512_PAGE_SIZE
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
   EERAM48L512_StatusRegister RegStatus;
   eERRORRESULT Error;
@@ -437,7 +407,7 @@ eERRORRESULT EERAM48L512_WriteSecure(EERAM48L512 *pComp, uint16_t address, const
     //--- Check the write ---
     Error = EERAM48L512_GetStatus(pComp, &RegStatus);
     if (Error != ERR_NONE) return Error;                                                                     // If there is an error while calling EERAM48L512_GetStatus() then return the error
-    if ((RegStatus.Status & EERAM48L512_WRITE_SECURE_FAILED) != 0) return ERR__CRC_ERROR;                    // Check CRC
+    if ((RegStatus.Status & EERAM48L512_WRITE_SECURE_FAILED) != 0) return ERR_GENERATE(ERR__CRC_ERROR);      // Check CRC
     //--- Update parameters ---
     address += EERAM48L512_PAGE_SIZE;
     pData += EERAM48L512_PAGE_SIZE;
@@ -465,30 +435,21 @@ eERRORRESULT EERAM48L512_WriteNVUSData(EERAM48L512 *pComp, const uint8_t* data)
 eERRORRESULT EERAM48L512_WriteCommand(EERAM48L512 *pComp, const eEERAM48L512_OPcodes command)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   uint8_t RegData = (uint8_t)command;
 
   //--- Read data from SPI ---
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &RegData,
-    SPI_MEMBER(RxData      ) NULL,
-    SPI_MEMBER(DataSize    ) sizeof(RegData),
-    SPI_MEMBER(Terminate   ) true,
-  };
-  return pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Start a read transfer, get the data and stop transfer
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(&RegData, sizeof(RegData), true);
+  return pSPI->fnSPI_Transfer(pSPI, &PacketDesc);                // Start a read transfer, get the data and stop transfer
 }
 
 
@@ -499,33 +460,26 @@ eERRORRESULT EERAM48L512_WriteCommand(EERAM48L512 *pComp, const eEERAM48L512_OPc
 eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > EERAM48L512_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
-  SPIInterface_Packet PacketDesc;
   eERRORRESULT Error;
 
   //--- Check DMA ---
   if (EERAM48L512_IS_DMA_TRANSFER_IN_PROGRESS(pComp->InternalConfig))
   {
     const uint16_t CurrTransactionNumber = EERAM48L512_TRANSACTION_NUMBER_GET(pComp->InternalConfig);
-    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_TRANSACTION_NUMBER_SET(CurrTransactionNumber);
-    PacketDesc.ChipSelect   = pComp->SPIchipSelect;
-    PacketDesc.DummyByte    = 0x00;
-    PacketDesc.TxData       = NULL;
-    PacketDesc.RxData       = NULL;
-    PacketDesc.DataSize     = 0;
-    PacketDesc.Terminate    = true;
-    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Send only the chip address and get the Ack flag, to return the status of the current transfer
-    if ((Error != ERR__SPI_BUSY) && (Error != ERR__SPI_OTHER_BUSY)) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    SPIInterface_Packet CheckPacketDesc = SPI_INTERFACE_CHECK_DMA_DESC(CurrTransactionNumber);
+    Error = pSPI->fnSPI_Transfer(pSPI, &CheckPacketDesc);                      // Send only the chip address and get the Ack flag, to return the status of the current transfer
+    if ((ERR_ERROR_Get(Error) != ERR__SPI_BUSY) && (ERR_ERROR_Get(Error) != ERR__SPI_OTHER_BUSY)) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
     return Error;
   }
 
@@ -534,14 +488,8 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET;               // Remove write enable flag
   if (Error == ERR_NONE)                                                       // If there is no error while writing address then
   {
-    PacketDesc.Config.Value = SPI_USE_NON_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE);
-    PacketDesc.ChipSelect   = pComp->SPIchipSelect;
-    PacketDesc.DummyByte    = 0x00;
-    PacketDesc.TxData       = pData;
-    PacketDesc.RxData       = NULL;
-    PacketDesc.DataSize     = size;
-    PacketDesc.Terminate    = true;
-    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Restart at first data read transfer, get the data and stop transfer at last data
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DMA_DESC(pData, true, size, true);
+    Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);                           // Restart at first data read transfer, get the data and stop transfer at last data
     if (Error != ERR__SPI_OTHER_BUSY) pComp->InternalConfig &= EERAM48L512_NO_DMA_TRANSFER_IN_PROGRESS_SET;
     if (Error == ERR__SPI_BUSY) pComp->InternalConfig |= EERAM48L512_DMA_TRANSFER_IN_PROGRESS;
     EERAM48L512_TRANSACTION_NUMBER_CLEAR(pComp->InternalConfig);
@@ -561,31 +509,22 @@ eERRORRESULT EERAM48L512_WriteSRAMDataWithDMA(EERAM48L512 *pComp, uint16_t addre
 eERRORRESULT EERAM48L512_GetStatus(EERAM48L512 *pComp, EERAM48L512_StatusRegister* status)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (status == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (status == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   uint8_t RegData[2] = { EERAM48L512_RDSR, 0x00 };
   eERRORRESULT Error;
 
   //--- Read data from SPI ---
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &RegData[0],
-    SPI_MEMBER(RxData      ) &RegData[0],
-    SPI_MEMBER(DataSize    ) sizeof(RegData),
-    SPI_MEMBER(Terminate   ) true,
-  };
-  Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Start a read transfer, get the data and stop transfer
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_RX_DATA_DESC(&RegData[0], sizeof(RegData), true);
+  Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc);               // Start a read transfer, get the data and stop transfer
   status->Status = RegData[1];
   return Error;
 }
@@ -598,30 +537,21 @@ eERRORRESULT EERAM48L512_GetStatus(EERAM48L512 *pComp, EERAM48L512_StatusRegiste
 eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusRegister status)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   uint8_t RegData[2] = { EERAM48L512_WRSR, status.Status };
 
-  //--- Read data from SPI ---
+  //--- Write data to SPI ---
   pComp->InternalConfig &= EERAM48L512_STATUS_WRITE_DISABLE_SET; // Remove write enable flag
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &RegData[0],
-    SPI_MEMBER(RxData      ) NULL,
-    SPI_MEMBER(DataSize    ) sizeof(RegData),
-    SPI_MEMBER(Terminate   ) true,
-  };
-  return pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Start a read transfer, get the data and stop transfer
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(&RegData[0], sizeof(RegData), true);
+  return pSPI->fnSPI_Transfer(pSPI, &PacketDesc);                // Start a read transfer, get the data and stop transfer
 }
 
 
@@ -635,27 +565,27 @@ eERRORRESULT EERAM48L512_SetStatus(EERAM48L512 *pComp, const EERAM48L512_StatusR
 eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfStore)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->fnGetCurrentms == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   EERAM48L512_StatusRegister Reg;
   eERRORRESULT Error = ERR_NONE;
 
   //--- Send the store operation ---
-  Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_STORE); // Start a store
-  if (Error != ERR_NONE) return Error;                        // If there is an error while calling EERAM48L512_WriteCommand() then return the error
+  Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_STORE);                           // Start a store
+  if (Error != ERR_NONE) return Error;                                                  // If there is an error while calling EERAM48L512_WriteCommand() then return the error
 
   //--- Wait the end of store if asked ---
   if (waitEndOfStore)
   {
     Reg.Status = 0x00;
-    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM48L512_STORE_TIMEOUT + 1; // Wait at least STORE_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
+    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM48L512_STORE_TIMEOUT + 1;         // Wait at least STORE_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
     while (true)
     {
-      Error = EERAM48L512_GetStatus(pComp, &Reg);                         // Get the status register
-      if (Error != ERR_NONE) return Error;                                // If there is an error while calling EERAM48L512_GetStatus() then return the error
-      if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                 // The store is finished, all went fine
-      if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
+      Error = EERAM48L512_GetStatus(pComp, &Reg);                                       // Get the status register
+      if (Error != ERR_NONE) return Error;                                              // If there is an error while calling EERAM48L512_GetStatus() then return the error
+      if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                               // The store is finished, all went fine
+      if (pComp->fnGetCurrentms() >= Timeout) return ERR_GENERATE(ERR__DEVICE_TIMEOUT); // Timeout? return the error
     }
   }
   return Error;
@@ -669,25 +599,25 @@ eERRORRESULT EERAM48L512_StoreSRAMtoEEPROM(EERAM48L512 *pComp, bool waitEndOfSto
 eERRORRESULT EERAM48L512_RecallEEPROMtoSRAM(EERAM48L512 *pComp, bool waitEndOfRecall)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp->fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp->fnGetCurrentms == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   EERAM48L512_StatusRegister Reg;
   eERRORRESULT Error = ERR_NONE;
 
   //--- Send a recall operation ---
-  Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_RECALL); // Start a store
-  if (Error != ERR_NONE) return Error;                         // If there is an error while calling EERAM48L512_WriteCommand() then return the error
+  Error = EERAM48L512_WriteCommand(pComp, EERAM48L512_RECALL);                          // Start a store
+  if (Error != ERR_NONE) return Error;                                                  // If there is an error while calling EERAM48L512_WriteCommand() then return the error
   //--- Wait the end of recall if asked ---
   if (waitEndOfRecall)
   {
     Reg.Status = 0x00;
-    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM48L512_RECALL_TIMEOUT + 1; // Wait at least RECALL_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
+    uint32_t Timeout = pComp->fnGetCurrentms() + EERAM48L512_RECALL_TIMEOUT + 1;        // Wait at least RECALL_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
     while (true)
     {
-      Error = EERAM48L512_GetStatus(pComp, &Reg);                         // Get the status register
-      if (Error != ERR_NONE) return Error;                                // If there is an error while calling EERAM48L512_GetStatus() then return the error
-      if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                 // The recall is finished, all went fine
-      if (pComp->fnGetCurrentms() >= Timeout) return ERR__DEVICE_TIMEOUT; // Timout ? return the error
+      Error = EERAM48L512_GetStatus(pComp, &Reg);                                       // Get the status register
+      if (Error != ERR_NONE) return Error;                                              // If there is an error while calling EERAM48L512_GetStatus() then return the error
+      if ((Reg.Status & EERAM48L512_IS_BUSY) == 0) break;                               // The recall is finished, all went fine
+      if (pComp->fnGetCurrentms() >= Timeout) return ERR_GENERATE(ERR__DEVICE_TIMEOUT); // Timeout? return the error
     }
   }
   return ERR_NONE;
