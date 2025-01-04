@@ -16,6 +16,13 @@
 //-----------------------------------------------------------------------------
 #include "23LCxxx.h"
 //-----------------------------------------------------------------------------
+#ifdef USE_ERROR_CONTEXT
+#  define UNIT_ERR_CONTEXT  ERRCONTEXT__23LCxxx // Error context of this unit
+#else
+#  define ERR_GENERATE(error)   error
+#  define ERR_ERROR_Get(error)  error
+#endif
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 #include <cstdint>
 extern "C" {
@@ -112,15 +119,15 @@ static eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCx
 eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pConf)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (pConf == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (pConf == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   pComp->InternalConfig = SRAM23LCxxx_IO_MODE_SET(SRAM23LCxxx_SPI);
   eERRORRESULT Error;
@@ -128,27 +135,27 @@ eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pCon
   //--- Recover I/O access mode ---
   if (pConf->RecoverSPIbus)
   {
-    if ((pComp->Conf->ModeSet & SRAM23LCxxx_SDI) > 0)                 // Device supports SDI?
+    if ((pComp->Conf->ModeSet & SRAM23LCxxx_SDI) > 0)                                             // Device supports SDI?
     {
       Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, DUAL_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SDI mode
-      if (Error != ERR_NONE) return Error;                            // If there is an error while calling fnSPI_Init() then return the error
-      Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO); // Return to SPI mode
-      if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+      if (Error != ERR_NONE) return Error;                                                        // If there is an error while calling fnSPI_Init() then return the error
+      Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO);                             // Return to SPI mode
+      if (Error != ERR_NONE) return Error;                                                        // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     }
-    if ((pComp->Conf->ModeSet & SRAM23LCxxx_SQI) > 0)                 // Device supports SQI?
+    if ((pComp->Conf->ModeSet & SRAM23LCxxx_SQI) > 0)                                             // Device supports SQI?
     {
       Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, QUAD_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SQI mode
-      if (Error != ERR_NONE) return Error;                            // If there is an error while calling fnSPI_Init() then return the error
-      Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO); // Return to SPI mode
-      if (Error != ERR_NONE) return Error;                            // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
+      if (Error != ERR_NONE) return Error;                                                        // If there is an error while calling fnSPI_Init() then return the error
+      Error = SRAM23LCxxx_WriteInstruction(pComp, SRAM23LCxxx_RSTIO);                             // Return to SPI mode
+      if (Error != ERR_NONE) return Error;                                                        // If there is an error while calling SRAM23LCxxx_WriteInstruction() then return the error
     }
-    Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed); // Configure interface in SDI mode
-    if (Error != ERR_NONE) return Error;                              // If there is an error while calling fnSPI_Init() then return the error
+    Error = pSPI->fnSPI_Init(pSPI, pComp->SPIchipSelect, STD_SPI_MODE0, pComp->SPIclockSpeed);    // Configure interface in SDI mode
+    if (Error != ERR_NONE) return Error;                                                          // If there is an error while calling fnSPI_Init() then return the error
   }
 
   //--- Configure SPI interface ---
   Error = SRAM23LCxxx_SetIOmode(pComp, pConf->IOmode);
-  if (Error != ERR_NONE) return Error;                                // If there is an error while calling SRAM23LCxxx_SetIOmode() then return the error
+  if (Error != ERR_NONE) return Error;                                                            // If there is an error while calling SRAM23LCxxx_SetIOmode() then return the error
 
   //--- Configure memory mode ---
   return SRAM23LCxxx_SetOperationMode(pComp, pConf->OperationMode, pConf->DisableHold);
@@ -165,15 +172,15 @@ eERRORRESULT Init_SRAM23LCxxx(SRAM23LCxxx *pComp, const SRAM23LCxxx_Config* pCon
 eERRORRESULT __SRAM23LCxxx_WriteAddress(SRAM23LCxxx *pComp, const uint8_t instruction, const uint32_t address, const bool onlyInstruction)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
 
   //--- Create address ---
@@ -181,16 +188,7 @@ eERRORRESULT __SRAM23LCxxx_WriteAddress(SRAM23LCxxx *pComp, const uint8_t instru
   const uint8_t AddrBytes = (onlyInstruction ? 0 : pComp->Conf->AddressBytes);
   for (int_fast8_t z = AddrBytes; --z >=0;) Address[z + 1] = (uint8_t)((address >> ((AddrBytes - z - 1) * 8)) & 0xFF);
   //--- Send the address ---
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &Address[0],
-    SPI_MEMBER(RxData      ) NULL,
-    SPI_MEMBER(DataSize    ) 1 + AddrBytes,
-    SPI_MEMBER(Terminate   ) false,
-  };
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(&Address[0], (1 + AddrBytes), false);
   return pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Transfer the address
 }
 
@@ -205,34 +203,25 @@ eERRORRESULT __SRAM23LCxxx_WriteAddress(SRAM23LCxxx *pComp, const uint8_t instru
 eERRORRESULT __SRAM23LCxxx_ReadData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_InstructionSet instruction, uint32_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   const eSRAM23LCxxx_IOmodes IOmode = SRAM23LCxxx_IO_MODE_GET(pComp->InternalConfig);
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_USE_DUMMYBYTE_FOR_RECEIVE | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) NULL,
-    SPI_MEMBER(RxData      ) data,
-    SPI_MEMBER(DataSize    ) size,
-    SPI_MEMBER(Terminate   ) true,
-  };
   eERRORRESULT Error;
 
   //--- Read data ---
   Error = __SRAM23LCxxx_WriteAddress(pComp, instruction, address, (instruction == SRAM23LCxxx_RDSR)); // Start a write at address with the device
   if (Error == ERR_NONE)                               // If there is no error while writing address then
   {
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_RX_DATA_WITH_DUMMYBYTE_DESC(0x00, data, size, true);
     if ((IOmode != SRAM23LCxxx_SPI) && (instruction != SRAM23LCxxx_RDSR)) // In SDI or SQI?
     {
       PacketDesc.DataSize  = 1;
@@ -255,12 +244,12 @@ eERRORRESULT __SRAM23LCxxx_ReadData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Instr
 eERRORRESULT SRAM23LCxxx_ReadSRAMData(SRAM23LCxxx *pComp, uint32_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   const SRAM23LCxxx_Conf* const pConf = pComp->Conf;
   const eSRAM23LCxxx_Modes SRAMmode = SRAM23LCxxx_MODE_GET(pComp->InternalConfig);
-  if ((address + (uint32_t)size) > pConf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > pConf->ArrayByteSize) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
 
@@ -295,17 +284,17 @@ eERRORRESULT SRAM23LCxxx_ReadSRAMData(SRAM23LCxxx *pComp, uint32_t address, uint
 eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_InstructionSet instruction, uint32_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > pComp->Conf->ArrayByteSize) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
 
@@ -313,16 +302,7 @@ eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Inst
   Error = __SRAM23LCxxx_WriteAddress(pComp, instruction, address, (instruction == SRAM23LCxxx_WRSR)); // Start a write at address with the device
   if (Error == ERR_NONE)                             // If there is no error while writing address then
   {
-    SPIInterface_Packet PacketDesc =
-    {
-      SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-      SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-      SPI_MEMBER(DummyByte   ) 0x00,
-      SPI_MEMBER(TxData      ) pData,
-      SPI_MEMBER(RxData      ) NULL,
-      SPI_MEMBER(DataSize    ) size,
-      SPI_MEMBER(Terminate   ) true,
-    };
+    SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(pData, size, true);
     Error = pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Continue the transfer by sending the data and stop transfer
   }
   return Error;
@@ -336,12 +316,12 @@ eERRORRESULT __SRAM23LCxxx_WriteData(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Inst
 eERRORRESULT SRAM23LCxxx_WriteSRAMData(SRAM23LCxxx *pComp, uint32_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   const SRAM23LCxxx_Conf* const pConf = pComp->Conf;
   const eSRAM23LCxxx_Modes SRAMmode = SRAM23LCxxx_MODE_GET(pComp->InternalConfig);
-  if ((address + (uint32_t)size) > pConf->ArrayByteSize) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint32_t)size) > pConf->ArrayByteSize) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
 
@@ -373,28 +353,19 @@ eERRORRESULT SRAM23LCxxx_WriteSRAMData(SRAM23LCxxx *pComp, uint32_t address, con
 eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx_InstructionSet instruction)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   uint8_t RegData = (uint8_t)instruction;
 
-  //--- Read data from SPI ---
-  SPIInterface_Packet PacketDesc =
-  {
-    SPI_MEMBER(Config.Value) SPI_BLOCKING | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),
-    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,
-    SPI_MEMBER(DummyByte   ) 0x00,
-    SPI_MEMBER(TxData      ) &RegData,
-    SPI_MEMBER(RxData      ) NULL,
-    SPI_MEMBER(DataSize    ) sizeof(RegData),
-    SPI_MEMBER(Terminate   ) true,
-  };
+  //--- Write instruction to SPI ---
+  SPIInterface_Packet PacketDesc = SPI_INTERFACE_TX_DATA_DESC(&RegData, sizeof(RegData), true);
   return pSPI->fnSPI_Transfer(pSPI, &PacketDesc); // Start a read transfer, get the data and stop transfer
 }
 
@@ -409,7 +380,7 @@ eERRORRESULT SRAM23LCxxx_WriteInstruction(SRAM23LCxxx *pComp, const eSRAM23LCxxx
 eERRORRESULT SRAM23LCxxx_GetStatus(SRAM23LCxxx *pComp, SRAM23LCxxx_StatusRegister* status)
 {
 #ifdef CHECK_NULL_PARAM
-  if (status == NULL) return ERR__PARAMETER_ERROR;
+  if (status == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   return __SRAM23LCxxx_ReadData(pComp, SRAM23LCxxx_RDSR, 0, &status->Status, sizeof(SRAM23LCxxx_StatusRegister));
 }
@@ -435,22 +406,22 @@ eERRORRESULT SRAM23LCxxx_SetStatus(SRAM23LCxxx *pComp, const SRAM23LCxxx_StatusR
 eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmodes mode)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   SPI_Interface* pSPI = GET_SPI_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pSPI == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pSPI->fnSPI_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pSPI->fnSPI_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   eERRORRESULT Error;
 
   //--- Check SPI configuration ---
-  if (pComp->SPIclockSpeed > pComp->Conf->MaxSPIclockSpeed) return ERR__SPI_FREQUENCY_ERROR;
-  if ((mode == SRAM23LCxxx_SDI) && ((pComp->Conf->ModeSet & SRAM23LCxxx_SDI) == 0)) return ERR__SPI_CONFIG_ERROR;
-  if ((mode == SRAM23LCxxx_SQI) && ((pComp->Conf->ModeSet & SRAM23LCxxx_SQI) == 0)) return ERR__SPI_CONFIG_ERROR;
+  if (pComp->SPIclockSpeed > pComp->Conf->MaxSPIclockSpeed) return ERR_GENERATE(ERR__SPI_FREQUENCY_ERROR);
+  if ((mode == SRAM23LCxxx_SDI) && ((pComp->Conf->ModeSet & SRAM23LCxxx_SDI) == 0)) return ERR_GENERATE(ERR__SPI_CONFIG_ERROR);
+  if ((mode == SRAM23LCxxx_SQI) && ((pComp->Conf->ModeSet & SRAM23LCxxx_SQI) == 0)) return ERR_GENERATE(ERR__SPI_CONFIG_ERROR);
 
   //--- Reset interface to SPI ---
   if (SRAM23LCxxx_IO_MODE_GET(pComp->InternalConfig) != SRAM23LCxxx_SPI)
@@ -494,8 +465,8 @@ eERRORRESULT SRAM23LCxxx_SetIOmode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_IOmode
 eERRORRESULT SRAM23LCxxx_SetOperationMode(SRAM23LCxxx *pComp, const eSRAM23LCxxx_Modes mode, const bool disableHold)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
-  if (pComp->Conf == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
+  if (pComp->Conf == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   eERRORRESULT Error;
 

@@ -42,6 +42,8 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 1.1.0    Update following "SPI_Interface.h" version 2.0.0
+ *          Update error management to add context
  * 1.0.0    Release version
  *****************************************************************************/
 #ifndef SRAM23LCxxx_H_INC
