@@ -11,6 +11,13 @@
 //-----------------------------------------------------------------------------
 #include "47x04.h"
 //-----------------------------------------------------------------------------
+#ifdef USE_ERROR_CONTEXT
+#  define UNIT_ERR_CONTEXT  ERRCONTEXT__47x04 // Error context of this unit
+#else
+#  define ERR_GENERATE(error)   error
+#  define ERR_ERROR_Get(error)  error
+#endif
+//-----------------------------------------------------------------------------
 #ifdef __cplusplus
 #include <cstdint>
 extern "C" {
@@ -59,23 +66,23 @@ static eERRORRESULT __EERAM47x04_WriteData(EERAM47x04 *pComp, const uint8_t chip
 eERRORRESULT Init_EERAM47x04(EERAM47x04 *pComp)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Init == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Init == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   eERRORRESULT Error;
 
-  if (pComp->Eeprom.I2CclockSpeed > EERAM47x04_I2CCLOCK_MAX) return ERR__I2C_FREQUENCY_ERROR;
+  if (pComp->Eeprom.I2CclockSpeed > EERAM47x04_I2CCLOCK_MAX) return ERR_GENERATE(ERR__I2C_FREQUENCY_ERROR);
   Error = pI2C->fnI2C_Init(pI2C, pComp->Eeprom.I2CclockSpeed);
   if (Error != ERR_NONE) return Error; // If there is an error while calling fnI2C_Init() then return the Error
 
   pComp->Eeprom.InternalConfig = 0;
-  return (EERAM47x04_IsReady(pComp) ? ERR_NONE : ERR__NO_DEVICE_DETECTED);
+  return (EERAM47x04_IsReady(pComp) ? ERR_NONE : ERR_GENERATE(ERR__NO_DEVICE_DETECTED));
 }
 
 
@@ -109,14 +116,14 @@ bool EERAM47x04_IsReady(EERAM47x04 *pComp)
 eERRORRESULT __EERAM47x04_WriteAddress(EERAM47x04 *pComp, const uint8_t chipAddr, const uint16_t address, const bool useNonBlocking, const eI2C_TransferType transferType)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   const uint8_t AddrBytes = ((chipAddr & EERAM47x04_CHIPADDRESS_BASE_MASK) == EERAM47x04_SRAM_CHIPADDRESS_BASE ? 2 : 1); // If the base chip address is the SRAM then the address is 2 bytes else 1 byte (control registers)
   eERRORRESULT Error;
@@ -132,9 +139,9 @@ eERRORRESULT __EERAM47x04_WriteAddress(EERAM47x04 *pComp, const uint8_t chipAddr
     I2C_MEMBER(BufferSize  ) AddrBytes,
     I2C_MEMBER(Stop        ) false,
   };
-  Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc);                  // Transfer the address
-  if (Error == ERR__I2C_NACK) return ERR__NOT_READY;                // If the device receive a NAK, then the device is not ready
-  if (Error == ERR__I2C_NACK_DATA) return ERR__I2C_INVALID_ADDRESS; // If the device receive a NAK while transferring data, then this is an invalid address
+  Error = pI2C->fnI2C_Transfer(pI2C, &PacketDesc);                                               // Transfer the address
+  if (ERR_ERROR_Get(Error) == ERR__I2C_NACK) return ERR_GENERATE(ERR__NOT_READY);                // If the device receive a NAK, then the device is not ready
+  if (ERR_ERROR_Get(Error) == ERR__I2C_NACK_DATA) return ERR_GENERATE(ERR__I2C_INVALID_ADDRESS); // If the device receive a NAK while transferring data, then this is an invalid address
   return Error;
 }
 
@@ -145,16 +152,16 @@ eERRORRESULT __EERAM47x04_WriteAddress(EERAM47x04 *pComp, const uint8_t chipAddr
 eERRORRESULT EERAM47x04_ReadSRAMData(EERAM47x04 *pComp, uint16_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   const uint8_t ChipAddr = ((EERAM47x04_SRAM_CHIPADDRESS_BASE | pComp->Eeprom.AddrA2A1A0) & EERAM47x04_CHIPADDRESS_MASK);
   eERRORRESULT Error;
 
@@ -175,14 +182,14 @@ eERRORRESULT EERAM47x04_ReadSRAMData(EERAM47x04 *pComp, uint16_t address, uint8_
 eERRORRESULT EERAM47x04_ReadRegister(EERAM47x04 *pComp, uint8_t* data)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   const uint8_t ChipAddr = ((EERAM47x04_REG_CHIPADDRESS_BASE | pComp->Eeprom.AddrA2A1A0) & EERAM47x04_CHIPADDRESS_MASK);
   //--- Read data from I2C ---
@@ -197,16 +204,16 @@ eERRORRESULT EERAM47x04_ReadRegister(EERAM47x04 *pComp, uint8_t* data)
 eERRORRESULT EERAM47x04_ReadSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address, uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   const uint8_t ChipAddr = ((EERAM47x04_SRAM_CHIPADDRESS_BASE | pComp->Eeprom.AddrA2A1A0) & EERAM47x04_CHIPADDRESS_MASK);
   eERRORRESULT Error;
 
@@ -216,7 +223,10 @@ eERRORRESULT EERAM47x04_ReadSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address,
     const uint16_t CurrTransactionNumber = EERAM47x04_TRANSACTION_NUMBER_GET(pComp->Eeprom.InternalConfig);
     I2CInterface_Packet PacketDescCheck = I2C_INTERFACE8_CHECK_DMA_DESC(ChipAddr, CurrTransactionNumber);
     Error = pI2C->fnI2C_Transfer(pI2C, &PacketDescCheck);                                            // Send only the chip address and get the Ack flag, to return the status of the current transfer
-    if ((Error != ERR__I2C_BUSY) && (Error != ERR__I2C_OTHER_BUSY)) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    if ((ERR_ERROR_Get(Error) != ERR__I2C_BUSY) && (ERR_ERROR_Get(Error) != ERR__I2C_OTHER_BUSY))
+    {
+      pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    }      
     return Error;
   }
 
@@ -226,8 +236,8 @@ eERRORRESULT EERAM47x04_ReadSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address,
   {
     I2CInterface_Packet PacketDescData = I2C_INTERFACE8_RX_DATA_DESC(ChipAddr, true, data, size, true, I2C_WRITE_THEN_READ_SECOND_PART);
     Error = pI2C->fnI2C_Transfer(pI2C, &PacketDescData);                                             // Restart at first data read transfer, get the data and stop transfer at last data
-    if (Error != ERR__I2C_OTHER_BUSY) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
-    if (Error == ERR__I2C_BUSY) pComp->Eeprom.InternalConfig |= EERAM47x04_DMA_TRANSFER_IN_PROGRESS;
+    if (ERR_ERROR_Get(Error) != ERR__I2C_OTHER_BUSY) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    if (ERR_ERROR_Get(Error) == ERR__I2C_BUSY) pComp->Eeprom.InternalConfig |= EERAM47x04_DMA_TRANSFER_IN_PROGRESS;
     EERAM47x04_TRANSACTION_NUMBER_CLEAR(pComp->Eeprom.InternalConfig);
     pComp->Eeprom.InternalConfig |= EERAM47x04_TRANSACTION_NUMBER_SET(I2C_TRANSACTION_NUMBER_GET(PacketDescData.Config.Value));
   }
@@ -244,16 +254,16 @@ eERRORRESULT EERAM47x04_ReadSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address,
 eERRORRESULT __EERAM47x04_WriteData(EERAM47x04 *pComp, const uint8_t chipAddr, uint16_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if ((pComp == NULL) || (data == NULL)) return ERR__PARAMETER_ERROR;
+  if ((pComp == NULL) || (data == NULL)) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   const uint8_t ChipAddr = (chipAddr | pComp->Eeprom.AddrA2A1A0) & EERAM47x04_CHIPADDRESS_MASK;
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
@@ -284,7 +294,7 @@ eERRORRESULT EERAM47x04_WriteSRAMData(EERAM47x04 *pComp, uint16_t address, const
 eERRORRESULT EERAM47x04_WriteRegister(EERAM47x04 *pComp, uint8_t address, const uint8_t data)
 {
   eERRORRESULT Error = __EERAM47x04_WriteData(pComp, EERAM47x04_REG_CHIPADDRESS_BASE, address, &data, 1);
-  if (Error == ERR__I2C_NACK_DATA) Error = ERR__I2C_INVALID_COMMAND; // Here a NACK indicate that the command (aka 'data') is invalid. It cannot be anything else
+  if (ERR_ERROR_Get(Error) == ERR__I2C_NACK_DATA) Error = ERR_GENERATE(ERR__I2C_INVALID_COMMAND); // Here a NACK indicate that the command (aka 'data') is invalid. It cannot be anything else
   return Error;
 }
 
@@ -295,16 +305,16 @@ eERRORRESULT EERAM47x04_WriteRegister(EERAM47x04 *pComp, uint8_t address, const 
 eERRORRESULT EERAM47x04_WriteSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address, const uint8_t* data, size_t size)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   I2C_Interface* pI2C = GET_I2C_INTERFACE;
 #if defined(CHECK_NULL_PARAM)
 # if defined(USE_DYNAMIC_INTERFACE)
-  if (pI2C == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 # endif
-  if (pI2C->fnI2C_Transfer == NULL) return ERR__PARAMETER_ERROR;
+  if (pI2C->fnI2C_Transfer == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
-  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR__OUT_OF_MEMORY;
+  if ((address + (uint16_t)size) > EERAM47x04_EERAM_SIZE) return ERR_GENERATE(ERR__OUT_OF_MEMORY);
   const uint8_t ChipAddr = ((EERAM47x04_SRAM_CHIPADDRESS_BASE | pComp->Eeprom.AddrA2A1A0) & EERAM47x04_CHIPADDRESS_MASK);
   uint8_t* pData = (uint8_t*)data;
   eERRORRESULT Error;
@@ -315,7 +325,10 @@ eERRORRESULT EERAM47x04_WriteSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address
     const uint16_t CurrTransactionNumber = EERAM47x04_TRANSACTION_NUMBER_GET(pComp->Eeprom.InternalConfig);
     I2CInterface_Packet PacketDescCheck = I2C_INTERFACE8_CHECK_DMA_DESC(ChipAddr, CurrTransactionNumber);
     Error = pI2C->fnI2C_Transfer(pI2C, &PacketDescCheck);                                             // Send only the chip address and get the Ack flag, to return the status of the current transfer
-    if ((Error != ERR__I2C_BUSY) && (Error != ERR__I2C_OTHER_BUSY)) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    if ((ERR_ERROR_Get(Error) != ERR__I2C_BUSY) && (ERR_ERROR_Get(Error) != ERR__I2C_OTHER_BUSY))
+    {
+      pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    }      
     return Error;
   }
 
@@ -325,8 +338,8 @@ eERRORRESULT EERAM47x04_WriteSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address
   {
     I2CInterface_Packet PacketDescData = I2C_INTERFACE8_TX_DATA_DESC(ChipAddr, true, pData, size, true, I2C_WRITE_THEN_WRITE_SECOND_PART);
     Error = pI2C->fnI2C_Transfer(pI2C, &PacketDescData);                                              // Restart at first data read transfer, get the data and stop transfer at last data
-    if (Error != ERR__I2C_OTHER_BUSY) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
-    if (Error == ERR__I2C_BUSY) pComp->Eeprom.InternalConfig |= EERAM47x04_DMA_TRANSFER_IN_PROGRESS;
+    if (ERR_ERROR_Get(Error) != ERR__I2C_OTHER_BUSY) pComp->Eeprom.InternalConfig &= EERAM47x04_NO_DMA_TRANSFER_IN_PROGRESS_SET;
+    if (ERR_ERROR_Get(Error) == ERR__I2C_BUSY) pComp->Eeprom.InternalConfig |= EERAM47x04_DMA_TRANSFER_IN_PROGRESS;
     EERAM47x04_TRANSACTION_NUMBER_CLEAR(pComp->Eeprom.InternalConfig);
     pComp->Eeprom.InternalConfig |= EERAM47x04_TRANSACTION_NUMBER_SET(I2C_TRANSACTION_NUMBER_GET(PacketDescData.Config.Value));
   }
@@ -343,38 +356,38 @@ eERRORRESULT EERAM47x04_WriteSRAMDataWithDMA(EERAM47x04 *pComp, uint16_t address
 eERRORRESULT EERAM47x04_StoreSRAMtoEEPROM(EERAM47x04 *pComp, bool forceStore, bool waitEndOfStore)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp->Eeprom.fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp->Eeprom.fnGetCurrentms == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   eERRORRESULT Error = ERR_NONE;
   EERAM47x04_Status_Register Reg;
   bool Store = forceStore;
 
   //--- Check the need of store operation ---
-  if (forceStore == false)                                                           // Check register Status.AM if the store is not forced
+  if (forceStore == false)                                                                                  // Check register Status.AM if the store is not forced
   {
-    Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                             // Get the status register
-    if (Error != ERR_NONE) return Error;                                             // If there is an error while reading register, then return the error
-    Store = ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) > 0);                          // If the array has been modified, flag the store
+    Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                                                    // Get the status register
+    if (Error != ERR_NONE) return Error;                                                                    // If there is an error while reading register, then return the error
+    Store = ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) > 0);                                                 // If the array has been modified, flag the store
   }
   //--- Send the store operation if necessary or asked ---
   if (Store)
   {
     uint8_t Data = EERAM47x04_STORE_COMMAND;
-    Error = EERAM47x04_WriteRegister(pComp, EERAM47x04_COMMAND_REGISTER_ADDR, Data); // Execute a store
-    if (Error != ERR_NONE) return Error;                                             // If there is an error while reading register, then return the error
+    Error = EERAM47x04_WriteRegister(pComp, EERAM47x04_COMMAND_REGISTER_ADDR, Data);                        // Execute a store
+    if (Error != ERR_NONE) return Error;                                                                    // If there is an error while reading register, then return the error
     //--- Wait the end of store if asked ---
     if (waitEndOfStore)
     {
       Reg.Status = EERAM47x04_ARRAY_MODIFIED;
-      uint32_t StartTime = pComp->Eeprom.fnGetCurrentms();                           // Start the timeout
+      uint32_t StartTime = pComp->Eeprom.fnGetCurrentms();                                                  // Start the timeout
       while (true)
       {
-        Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                         // Get the status register
-        if ((Error != ERR_NONE) && (Error != ERR__I2C_NACK)) return Error;           // If there is an error while calling EERAM47x04_ReadRegister() then return the error
-        if ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) == 0) break;                    // The store is finished, all went fine
+        Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                                                // Get the status register
+        if ((ERR_ERROR_Get(Error) != ERR_NONE) && (ERR_ERROR_Get(Error) != ERR__I2C_NACK)) return Error;    // If there is an error while calling EERAM47x04_ReadRegister() then return the error
+        if ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) == 0) break;                                           // The store is finished, all went fine
         if (EERAM47x04_TIME_DIFF(StartTime, pComp->Eeprom.fnGetCurrentms()) > EERAM47x04_STORE_TIMEOUT + 1) // Wait at least STORE_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
         {
-          return ERR__DEVICE_TIMEOUT;                                                // Timeout? return the error
+          return ERR_GENERATE(ERR__DEVICE_TIMEOUT);                                                         // Timeout? return the error
         }
       }
     }
@@ -389,28 +402,28 @@ eERRORRESULT EERAM47x04_StoreSRAMtoEEPROM(EERAM47x04 *pComp, bool forceStore, bo
 eERRORRESULT EERAM47x04_RecallEEPROMtoSRAM(EERAM47x04 *pComp, bool waitEndOfRecall)
 {
 #ifdef CHECK_NULL_PARAM
-  if (pComp->Eeprom.fnGetCurrentms == NULL) return ERR__PARAMETER_ERROR;
+  if (pComp->Eeprom.fnGetCurrentms == NULL) return ERR_GENERATE(ERR__PARAMETER_ERROR);
 #endif
   eERRORRESULT Error = ERR_NONE;
   EERAM47x04_Status_Register Reg;
 
   //--- Send a recall operation ---
   uint8_t Data = EERAM47x04_RECALL_COMMAND;
-  Error = EERAM47x04_WriteRegister(pComp, EERAM47x04_COMMAND_REGISTER_ADDR, Data); // Execute a recall
-  if (Error != ERR_NONE) return Error;                                             // If there is an error while reading register, then return the error
+  Error = EERAM47x04_WriteRegister(pComp, EERAM47x04_COMMAND_REGISTER_ADDR, Data);                         // Execute a recall
+  if (Error != ERR_NONE) return Error;                                                                     // If there is an error while reading register, then return the error
   //--- Wait the end of recall if asked ---
   if (waitEndOfRecall)
   {
     Reg.Status = EERAM47x04_ARRAY_MODIFIED;
-    uint32_t StartTime = pComp->Eeprom.fnGetCurrentms();                           // Start the timeout
+    uint32_t StartTime = pComp->Eeprom.fnGetCurrentms();                                                   // Start the timeout
     while (true)
     {
-      Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                         // Get the status register
-      if ((Error != ERR_NONE) && (Error != ERR__I2C_NACK)) return Error;           // If there is an error while calling EERAM47x04_ReadRegister() then return the error
-      if ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) == 0) break;                    // The store is finished, all went fine
+      Error = EERAM47x04_ReadRegister(pComp, &Reg.Status);                                                 // Get the status register
+      if ((ERR_ERROR_Get(Error) != ERR_NONE) && (ERR_ERROR_Get(Error) != ERR__I2C_NACK)) return Error;     // If there is an error while calling EERAM47x04_ReadRegister() then return the error
+      if ((Reg.Status & EERAM47x04_ARRAY_MODIFIED) == 0) break;                                            // The store is finished, all went fine
       if (EERAM47x04_TIME_DIFF(StartTime, pComp->Eeprom.fnGetCurrentms()) > EERAM47x04_RECALL_TIMEOUT + 1) // Wait at least RECALL_TIMEOUT + 1ms because GetCurrentms can be 1 cycle before the new ms
       {
-        return ERR__DEVICE_TIMEOUT;                                                // Timeout? return the error
+        return ERR_GENERATE(ERR__DEVICE_TIMEOUT);                                                          // Timeout? return the error
       }
     }
   }
