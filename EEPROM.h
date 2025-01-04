@@ -31,6 +31,7 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 1.2.2    Update error management to add context
  * 1.2.1    Rename 'ArrayByteSize' to 'TotalByteSize'
  *          Add 'OffsetAddress' parameter for some EEPROM configuration
  * 1.2.0    Add EEPROM genericness
