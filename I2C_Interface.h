@@ -58,14 +58,15 @@ extern "C" {
 #  define I2C_MEMBER(name)  .name =
 #endif
 //-----------------------------------------------------------------------------
-#ifdef USE_HAL_DRIVER // STM32cubeIDE
+#if defined(USE_HAL_DRIVER) || defined(USE_FULL_LL_DRIVER) // STM32cubeIDE
 #  include <Main.h> // To get the MCU general defines
 #endif
 //-----------------------------------------------------------------------------
 
-#define I2C_READ_ORMASK     ( 0x01u ) //!< Standard I2C LSB bit to set
-#define I2C_WRITE_ANDMASK   ( 0xFEu ) //!< Standard I2C bit mask which clear the LSB
-#define I2C_ONLY_ADDR_Mask  ( 0xFEu ) //!< Only get the device address and remove the read/write bit
+#define I2C_READ_ORMASK       ( 0x001u ) //!< Standard I2C LSB bit to set
+#define I2C_WRITE_ANDMASK     ( 0xFFEu ) //!< Standard I2C bit mask which clear the LSB
+#define I2C_ONLY_ADDR8_Mask   ( 0x0FEu ) //!< Only get the device address and remove the read/write bit
+#define I2C_ONLY_ADDR10_Mask  ( 0xFFEu ) //!< Only get the device address and remove the read/write bit
 
 //-----------------------------------------------------------------------------
 
@@ -141,6 +142,7 @@ typedef enum
 
 #define I2C_USE_10BITS_ADDRESS             (0x1u << 31) //!< Use a 10-bits chip address
 #define I2C_USE_8BITS_ADDRESS              (0x0u << 31) //!< Use a 8-bits chip address
+#define I2C_IS_10BITS_ADDRESS(chipAddr)    ( ((chipAddr) & I2C_USE_10BITS_ADDRESS) > 0 ) //!< Is a 10-bits chip address?
 
 //-----------------------------------------------------------------------------
 
@@ -213,6 +215,30 @@ typedef struct
     I2C_MEMBER(Stop        ) (stop),                                                                               \
   }
 
+//! Prepare I2C packet description to transmit bytes with DMA and a 8-bits device address
+#define I2C_INTERFACE8_TX_DATA_DMA_DESC(chipAddr,start,txData,useDMA,size,stop,transferType)                       \
+  {                                                                                                                \
+    I2C_MEMBER(Config.Value) (useDMA ? I2C_USE_NON_BLOCKING : I2C_BLOCKING) | I2C_USE_8BITS_ADDRESS                \
+                           | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
+    I2C_MEMBER(ChipAddr    ) (chipAddr) & I2C_WRITE_ANDMASK,                                                       \
+    I2C_MEMBER(Start       ) (start),                                                                              \
+    I2C_MEMBER(pBuffer     ) (uint8_t*)(txData),                                                                   \
+    I2C_MEMBER(BufferSize  ) (size),                                                                               \
+    I2C_MEMBER(Stop        ) (stop),                                                                               \
+  }
+
+//! Prepare I2C packet description to receive bytes with DMA and a 8-bits device address
+#define I2C_INTERFACE8_RX_DATA_DMA_DESC(chipAddr,start,rxData,useDMA,size,stop,transferType)                       \
+  {                                                                                                                \
+    I2C_MEMBER(Config.Value) (useDMA ? I2C_USE_NON_BLOCKING : I2C_BLOCKING) | I2C_USE_8BITS_ADDRESS                \
+                           | I2C_ENDIAN_TRANSFORM_SET(I2C_NO_ENDIAN_CHANGE) | I2C_TRANSFER_TYPE_SET(transferType), \
+    I2C_MEMBER(ChipAddr    ) (chipAddr) | I2C_READ_ORMASK,                                                         \
+    I2C_MEMBER(Start       ) (start),                                                                              \
+    I2C_MEMBER(pBuffer     ) (uint8_t*)(rxData),                                                                   \
+    I2C_MEMBER(BufferSize  ) (size),                                                                               \
+    I2C_MEMBER(Stop        ) (stop),                                                                               \
+  }
+
 //-----------------------------------------------------------------------------
 
 
@@ -261,11 +287,16 @@ struct I2C_Interface
   I2CTransferPacket_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
 };
 
-#elif defined(USE_HAL_DRIVER) //#ifdef STM32cubeIDE
-//! @brief STM32 HAL I2C interface container structure
+#elif defined(USE_HAL_DRIVER) || defined(USE_FULL_LL_DRIVER) // STM32cubeIDE
+//! @brief STM32 LL/HAL I2C interface container structure
 struct I2C_Interface
 {
+#ifdef HAL_I2C_MODULE_ENABLED
   I2C_HandleTypeDef* pHI2C;              //!< Pointer to I2C handle Structure definition
+#endif
+#ifdef STM32G4xx_LL_I2C_H
+  I2C_TypeDef* pHI2C;                    //!< Pointer to I2C handle Structure definition
+#endif
   I2CInit_Func fnI2C_Init;               //!< This function will be called at driver initialization to configure the interface driver
   I2CTransferPacket_Func fnI2C_Transfer; //!< This function will be called when the driver needs to transfer data over the I2C communication with the device
   uint32_t I2Ctimeout;                   //!< I2C timeout

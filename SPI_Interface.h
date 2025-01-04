@@ -31,6 +31,7 @@
  *****************************************************************************/
 
 /* Revision history:
+ * 2.0.0    Add data bit-length support
  * 1.1.1    Add specific for STM32cubeIDE
  * 1.1.0    Add specific for Arduino, change SPI_MODEs names to comply with Arduino library
  * 1.0.0    Release version
@@ -47,20 +48,36 @@
 //-----------------------------------------------------------------------------
 #include "ErrorsDef.h"
 //-----------------------------------------------------------------------------
-#ifdef __cplusplus
-#  ifdef ARDUINO
-#    include <Arduino.h>
-#    include <SPI.h>
-#  endif
-#  define SPI_MEMBER(name)
-extern "C" {
-#else
-#  define SPI_MEMBER(name)  .name =
+#ifdef ARDUINO
+#  include <Arduino.h>
+#  include <SPI.h>
 #endif
 //-----------------------------------------------------------------------------
 #ifdef USE_HAL_DRIVER // STM32cubeIDE
 #  include <Main.h> // To get the MCU general defines
 #endif
+//-----------------------------------------------------------------------------
+#ifdef __cplusplus
+
+#  define SPI_MEMBER(name)
+#  define __SPI_PACKED__
+#  define SPI_PACKENUM(name,type)  typedef enum name : type
+#  define SPI_UNPACKENUM(name)     name
+  extern "C" {
+
+#else
+
+#  define SPI_MEMBER(name)         .name =
+#  define __SPI_PACKED__           __attribute__((packed))
+#  define SPI_PACKENUM(name,type)  typedef enum __SPI_PACKED__
+#  define SPI_UNPACKENUM(name)     name
+
+#endif
+//-----------------------------------------------------------------------------
+
+//! This macro is used to check the size of an object. If not, it will raise a "divide by 0" error at compile time
+#define SPI_CONTROL_ITEM_SIZE(item, size)  enum { item##_size_must_be_##size##_bytes = 1 / (int)(!!(sizeof(item) == size)) }
+
 //-----------------------------------------------------------------------------
 
 
@@ -122,13 +139,13 @@ typedef enum
 //! @brief Description of the data transmission
 typedef struct
 {
-  SPI_Conf Config;    //! Configuration of the SPI transfer
-  uint8_t ChipSelect; //! Is the Chip Select index to use for the SPI/Dual-SPI/Quad-SPI transfer
-  uint8_t DummyByte;  //! Is the byte to use for receiving data (used with flag SPI_USE_DUMMYBYTE_FOR_RECEIVE in SPIInterface_Packet.Config when receiving data or SPIInterface_Packet.TxData is NULL)
-  uint8_t *TxData;    //! Is the data to send through the interface (used with flag SPI_USE_TXDATA_FOR_RECEIVE in SPIInterface_Packet.Config when receiving data)
-  uint8_t *RxData;    //! Is where the data received through the interface will be stored. This parameter can be nulled by the driver if no received data is expected
-  size_t DataSize;    //! Is the size of the data to send and receive through the interface
-  bool Terminate;     //! Ask to terminate the current transfer. If 'true', deassert the ChipSelect pin at the end of transfer else leave the pin asserted
+  SPI_Conf Config;    //!< Configuration of the SPI transfer
+  uint8_t ChipSelect; //!< Is the Chip Select index to use for the SPI/Dual-SPI/Quad-SPI transfer
+  uint8_t DummyByte;  //!< Is the byte to use for receiving data (used with flag SPI_USE_DUMMYBYTE_FOR_RECEIVE in SPIInterface_Packet.Config when receiving data or SPIInterface_Packet.TxData is NULL)
+  uint8_t *TxData;    //!< Is the data to send through the interface (used with flag SPI_USE_TXDATA_FOR_RECEIVE in SPIInterface_Packet.Config when receiving data)
+  uint8_t *RxData;    //!< Is where the data received through the interface will be stored. This parameter can be nulled by the driver if no received data is expected
+  size_t DataSize;    //!< Is the size of the data to send and receive through the interface
+  bool Terminate;     //!< Ask to terminate the current transfer. If 'true', deassert the ChipSelect pin at the end of transfer else leave the pin asserted
 } SPIInterface_Packet;
 
 //-----------------------------------------------------------------------------
@@ -190,6 +207,45 @@ typedef struct
     SPI_MEMBER(Terminate   ) terminate,                                                                                     \
   }
 
+//! Prepare SPI packet description to transmit bytes with DMA
+#define SPI_INTERFACE_TX_DATA_DMA_DESC(txData,useDMA,size,terminate)                        \
+  {                                                                                         \
+    SPI_MEMBER(Config.Value) (useDMA ? SPI_USE_NON_BLOCKING : SPI_BLOCKING)                 \
+                           | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),                \
+    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,                                          \
+    SPI_MEMBER(DummyByte   ) 0x00,                                                          \
+    SPI_MEMBER(TxData      ) (uint8_t*)txData,                                              \
+    SPI_MEMBER(RxData      ) NULL,                                                          \
+    SPI_MEMBER(DataSize    ) size,                                                          \
+    SPI_MEMBER(Terminate   ) terminate,                                                     \
+  }
+
+//! Prepare SPI packet description to transmit bytes (TxData = RxData) with DMA
+#define SPI_INTERFACE_RX_DATA_DMA_DESC(data,useDMA,size,terminate)                          \
+  {                                                                                         \
+    SPI_MEMBER(Config.Value) (useDMA ? SPI_USE_NON_BLOCKING : SPI_BLOCKING)                 \
+                           | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE),                \
+    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,                                          \
+    SPI_MEMBER(DummyByte   ) 0x00,                                                          \
+    SPI_MEMBER(TxData      ) (uint8_t*)data,                                                \
+    SPI_MEMBER(RxData      ) (uint8_t*)data,                                                \
+    SPI_MEMBER(DataSize    ) size,                                                          \
+    SPI_MEMBER(Terminate   ) terminate,                                                     \
+  }
+
+//! Prepare SPI packet description to receive data using dummy byte with DMA
+#define SPI_INTERFACE_RX_DATA_DMA_WITH_DUMMYBYTE_DESC(dummyByte,rxData,useDMA,size,terminate)                \
+  {                                                                                                          \
+    SPI_MEMBER(Config.Value) (useDMA ? SPI_USE_NON_BLOCKING : SPI_BLOCKING)                                  \
+                           | SPI_ENDIAN_TRANSFORM_SET(SPI_NO_ENDIAN_CHANGE) | SPI_USE_DUMMYBYTE_FOR_RECEIVE, \
+    SPI_MEMBER(ChipSelect  ) pComp->SPIchipSelect,                                                           \
+    SPI_MEMBER(DummyByte   ) dummyByte,                                                                      \
+    SPI_MEMBER(TxData      ) NULL,                                                                           \
+    SPI_MEMBER(RxData      ) (uint8_t*)rxData,                                                               \
+    SPI_MEMBER(DataSize    ) size,                                                                           \
+    SPI_MEMBER(Terminate   ) terminate,                                                                      \
+  }
+
 //-----------------------------------------------------------------------------
 
 
@@ -200,7 +256,19 @@ typedef struct
 // SPI Interface functions definitions
 //********************************************************************************************************************
 
-typedef struct SPI_Interface SPI_Interface; //! Typedef of SPI_Interface device object structure
+/*! @brief SPI Interface structure specification
+ * @details When configuring SPI controller, the controller specification is be defined
+ * It is coded like this "..bbbbbb_ohfccccc", where:
+ * - 'c' is the pin count of the SPI (1 for 3-wire MOSI/MISO on the same pin, 1 for separate MOSI and MISO, 2 for Dual-SPI, 4 for Quad-SPI, 8 for Octal-SPI, etc.)
+ * - 'f' is for the LSB/MSB first of the data ('0' is for MSB first and '1' is for LSB first)
+ * - 'h' is the clock phase (CPHA)
+ * - 'o' is the clock polarity (CPOL/CKP)
+ * - 'b' is for the data bit count (0 = 8-bits data, 1 = 1-bit data, ..., 32 = 32-bits data)
+ */
+
+//-----------------------------------------------------------------------------
+
+typedef struct SPI_Interface SPI_Interface; //!< Typedef of SPI_Interface device object structure
 
 //-----------------------------------------------------------------------------
 
@@ -214,12 +282,12 @@ typedef struct SPI_Interface SPI_Interface; //! Typedef of SPI_Interface device 
 
 #define SPI_CPHA_Pos         6
 #define SPI_CPHA_Mask        (0x1u << SPI_CPHA_Pos)
-#define SPI_CPHA_SET(value)  (((uint8_t)(value) << SPI_CPHA_Pos) & SPI_CPHA_Mask) //!< Set clock phase
-#define SPI_CPHA_GET(value)  (((uint8_t)(value) & SPI_CPHA_Mask) >> SPI_CPHA_Pos) //!< Get clock phase
+#define SPI_CPHA_SET(value)  (((uint16_t)(value) << SPI_CPHA_Pos) & SPI_CPHA_Mask) //!< Set clock phase
+#define SPI_CPHA_GET(value)  (((uint16_t)(value) & SPI_CPHA_Mask) >> SPI_CPHA_Pos) //!< Get clock phase
 #define SPI_CPOL_Pos         7
 #define SPI_CPOL_Mask        (0x1u << SPI_CPOL_Pos)
-#define SPI_CPOL_SET(value)  (((uint8_t)(value) << SPI_CPOL_Pos) & SPI_CPOL_Mask) //!< Set clock polarity
-#define SPI_CPOL_GET(value)  (((uint8_t)(value) & SPI_CPOL_Mask) >> SPI_CPOL_Pos) //!< Get clock polarity
+#define SPI_CPOL_SET(value)  (((uint16_t)(value) << SPI_CPOL_Pos) & SPI_CPOL_Mask) //!< Set clock polarity
+#define SPI_CPOL_GET(value)  (((uint16_t)(value) & SPI_CPOL_Mask) >> SPI_CPOL_Pos) //!< Get clock polarity
 
 #define SPI_COMM_MODE_Mask   ( SPI_CPOL_Mask | SPI_CPHA_Mask )
 #define SPI_COMM_MODE0       ( SPI_CPOL_SET(0) | SPI_CPHA_SET(0) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 0 ; Clock phase (CPHA) = 0 ; Clock edge (CKE/NCPHA) = 1
@@ -228,7 +296,7 @@ typedef struct SPI_Interface SPI_Interface; //! Typedef of SPI_Interface device 
 #define SPI_COMM_MODE3       ( SPI_CPOL_SET(1) | SPI_CPHA_SET(1) ) //!< SPI mode 0: Clock polarity (CPOL/CKP) = 1 ; Clock phase (CPHA) = 1 ; Clock edge (CKE/NCPHA) = 0
 
 //! SPI bit width and mode enumerator
-typedef enum
+SPI_PACKENUM(eSPIInterface_Mode, uint16_t)
 {
   SPI_3WIRE_MODE0           = SPI_MSB_FIRST | SPI_COMM_MODE0 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 0) and data MSB first
   SPI_3WIRE_MODE1           = SPI_MSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(0), //!< Communication with device using 1 bit per clock (3-wire SPI (SDI and SDO are on the same pin) mode 1) and data MSB first
@@ -262,10 +330,17 @@ typedef enum
   QUAD_SPI_MODE1_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE1 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 1) and data LSB first
   QUAD_SPI_MODE2_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE2 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 2) and data LSB first
   QUAD_SPI_MODE3_LSB_FIRST  = SPI_LSB_FIRST | SPI_COMM_MODE3 | SPI_PIN_COUNT_SET(4), //!< Communication with device using 4 bits per clock (Quad-SPI mode 3) and data LSB first
-} eSPIInterface_Mode;
+  __SPIMODE_FORCE_16bits    = 0xFFFFu                                                //!< DO NOT USE, here to force 16-bits enum size
+} SPI_UNPACKENUM(eSPIInterface_Mode);
+SPI_CONTROL_ITEM_SIZE(eSPIInterface_Mode, 2);
 
 #define SPI_IS_LSB_FIRST(value)  (((value) & SPI_LSB_FIRST) > 0) //!< Is the value has the #SPI_LSB_FIRST bit defined?
 #define SPI_MODE_GET(value)      (((value) & SPI_COMM_MODE_Mask) >> SPI_CPHA_Pos) //!< Get the SPI mode value
+
+#define SPI_DATA_BITCOUNT_Pos         8
+#define SPI_DATA_BITCOUNT_Mask        (0x3Fu << SPI_DATA_BITCOUNT_Pos)
+#define SPI_DATA_BITCOUNT_SET(value)  (((uint16_t)(value) << SPI_DATA_BITCOUNT_Pos) & SPI_DATA_BITCOUNT_Mask) //!< Set the data bit count of the SPI communication
+#define SPI_DATA_BITCOUNT_GET(value)  (((uint16_t)(value) & SPI_DATA_BITCOUNT_Mask) >> SPI_DATA_BITCOUNT_Pos) //!< Get the data bit count of the SPI communication
 
 //-----------------------------------------------------------------------------
 

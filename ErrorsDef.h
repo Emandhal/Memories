@@ -40,6 +40,7 @@ extern "C" {
 #endif
 //-----------------------------------------------------------------------------
 
+#ifdef USE_ERROR_CONTEXT
 /*! @defgroup ErrorsContexts Errors and contexts
  * @details These defines sets contexts on errors
  * To do this, create a file named 'Specific_Target.c' and 'Specific_Target.h' with target a revelant name for the target platform (example 'Specific_MC_STM32G4.c' and 'Specific_MC_STM32G4.h')
@@ -113,6 +114,7 @@ extern "C" {
 /*  //--- No specific context ---                      */\
     X(ERRCONTEXT_NO_CONTEXT    , =   0, "No context"   ) \
 /*  //--- Contexts list ---                            */\
+    X(ERRCONTEXT__CONSOLE      ,      , "Console"      ) \
     X(ERRCONTEXT__TIMERTICKS   ,      , "TimerTicks"   ) \
     X(ERRCONTEXT__INTERNALSTATE,      , "InternalState") \
     X(ERRCONTEXT__EEPROM       ,      , "EEPROM"       )
@@ -150,6 +152,8 @@ static const char* const ERRCONTEXT_ContextStrings[] =
 };
 #endif
 
+//------------------------------------------------------------------------------
+#endif
 //------------------------------------------------------------------------------
 
 
