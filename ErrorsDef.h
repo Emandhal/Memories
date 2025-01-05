@@ -1,8 +1,8 @@
 /*!****************************************************************************
  * @file    ErrorsDef.h
  * @author  Fabien MAILLY
- * @version 1.0.0
- * @date    24/08/2020
+ * @version 1.0.1
+ * @date    04/01/2025
  * @brief   Errors definitions
  *
  * @details These errors definitions are compatibles with all the libraries
@@ -10,7 +10,7 @@
  *****************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020-2023 Fabien MAILLY
+ * Copyright (c) 2020-2025 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,11 @@
  * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *****************************************************************************/
+
+/* Revision history:
+ * 1.0.1    Update error management to add context
+ * 1.0.0    Release version
  *****************************************************************************/
 #ifndef ERRORSDEF_H_
 #define ERRORSDEF_H_

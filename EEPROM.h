@@ -1,15 +1,15 @@
 /*!*****************************************************************************
  * @file    EEPROM.h
  * @author  FMA
- * @version 1.2.1
- * @date    05/11/2023
+ * @version 1.2.2
+ * @date    04/01/2025
  * @brief   Generic EEPROM driver
  * @details Generic I2C-Compatible (2-wire) Serial EEPROM
  * It can work with every memory with an address 1010xxx_ compatibility
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020-2023 Fabien MAILLY
+ * Copyright (c) 2020-2025 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

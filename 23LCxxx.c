@@ -1,8 +1,8 @@
 /*!*****************************************************************************
  * @file    23LCxxx.c
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.0.0
- * @date    09/01/2022
+ * @version 1.1.0
+ * @date    04/01/2025
  * @brief   Generic SRAM 23LCxxx driver
  * @details Generic driver for Microchip (c) Serial SRAM 23LCxxx. Works with:
  *   23A640/23K640: 64K SPI Bus Low-Power Serial SRAM

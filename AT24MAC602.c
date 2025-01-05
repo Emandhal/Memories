@@ -1,8 +1,8 @@
 /*!*****************************************************************************
  * @file    AT24MAC602.c
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.2.0
- * @date    04/06/2023
+ * @version 1.2.1
+ * @date    04/01/2025
  * @brief   AT24MAC602 driver
  * @details I2C-Compatible (2-wire) 2-Kbit (256kB x 8) Serial EEPROM with a
  * Factory-Programmed EUI-64™ Address plus an Embedded Unique 128-bit Serial Number

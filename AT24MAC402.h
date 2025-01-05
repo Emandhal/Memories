@@ -1,8 +1,8 @@
 /*!*****************************************************************************
  * @file    AT24MAC402.h
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.2.0
- * @date    04/06/2023
+ * @version 1.2.1
+ * @date    04/01/2025
  * @brief   AT24MAC402 driver
  * @details I2C-Compatible (2-wire) 2-Kbit (256kB x 8) Serial EEPROM with a
  * Factory-Programmed EUI-48™ Address plus an Embedded Unique 128-bit Serial Number
@@ -10,7 +10,7 @@
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020-2023 Fabien MAILLY
+ * Copyright (c) 2020-2025 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

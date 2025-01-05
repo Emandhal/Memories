@@ -1,15 +1,15 @@
 /*!*****************************************************************************
  * @file    48L512.h
  * @author  Fabien 'Emandhal' MAILLY
- * @version 1.0.0
- * @date    26/12/2021
+ * @version 1.0.1
+ * @date    04/01/2025
  * @brief   EERAM48LM01 driver
  * @details SPI-Compatible 512-kbit SPI Serial EERAM
  * Follow datasheet DS20006008C Rev.C (Oct 2019)
  ******************************************************************************/
  /* @page License
  *
- * Copyright (c) 2020 Fabien MAILLY
+ * Copyright (c) 2020-2025 Fabien MAILLY
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
